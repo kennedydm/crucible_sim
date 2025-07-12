@@ -3,6 +3,7 @@
 mutable struct SimStruct
     rng         :: Xoshiro
     config      :: SimConfig
+    io          :: IOStream
     
     # data
     models          :: Array{Any}

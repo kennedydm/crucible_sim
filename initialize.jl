@@ -5,33 +5,44 @@ function sim_init(config::SimConfig)
     num_dimensions = sim.config.num_dimensions
     num_nodes = sim.config.num_nodes
 
-
-    sim_log(sim.config.quiet_init, string("Initializing Crucible Simulation"))
-    sim_log(sim.config.quiet_init, string("- Structure Seed: ", sim.config.structure_seed))
-    sim_log(sim.config.quiet_init, string("- Number of Dimensions: ", num_dimensions))
-    if 1 > num_dimensions
-        sim_log(sim.config.quiet_init, string("Error, not enough dimensions."))
-        return
+    debug_folder = string("./debug/", sim.config.debug_folder)
+    if ispath(debug_folder)
+        rm(debug_folder, recursive=true)
     end
 
-    sim_log(sim.config.quiet_init, string("- Number of Nodes: ", num_nodes))
+    sim.io = open(config.logfile, "w")
+    
+    sim_log(sim.io, sim.config.quiet_init, string("Initializing Crucible Simulation"))
+    
+    config_log_inputs(sim.io, sim.config)
+
+    if 1 > num_dimensions
+        sim_log(sim.io, sim.config.quiet_init, string("Error, not enough dimensions."))
+        return
+    end
     if 1 > num_nodes
-        sim_log(sim.config.quiet_init, string("Error, not enough nodes."))
+        sim_log(sim.io, sim.config.quiet_init, string("Error, not enough nodes."))
         return
     end
     
-    sim_log(sim.config.quiet_init, string("...\nConstructing Node 1"))
+    sim_log(sim.io, sim.config.quiet_init, string("...\nConstructing Node 1"))
     
     
     # create model functions for each dimension
-    sim_log(sim.config.quiet_init, string("Creating Models: ", num_dimensions))
+    sim_log(sim.io, sim.config.quiet_init, string("Creating Models: ", num_dimensions))
     for i in 1:num_dimensions
-        push!(sim.models, SimModel(sim.config, sim.rng))
+        mdl = SimModel(sim.config, sim.rng)
+        push!(sim.models, mdl)
+        if config.save_debug_figs
+            sim_plot_spline(mdl.gen_spline, "x", "g(x)", string("Model: ", i, " Governing Basic Spline"), debug_folder, string("mdl_", i, "_gov_fun.png"))
+            sim_plot_spline(mdl.mdl_spline, "u", "f(u)", string("Model: ", i, " Model Basic Spline"), debug_folder, string("mdl_", i, "_mdl_fun.png"))
+            sim_plot_model(mdl, string("Model: ", i, " Response"), debug_folder, string("mdl_", i, "_mdl_resp.png"))
+        end
     end
     sim.num_inputs += num_dimensions
     
     
-    sim_log(sim.config.quiet_init, string("...\nCreating Composition Functions"))
+    sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Composition Functions"))
     
     # create composition functions
     max_comp_fun = floor(Int, sqrt(num_dimensions))
@@ -49,28 +60,28 @@ function sim_init(config::SimConfig)
     for i in 1:length(unq)
         idx = findall(x -> x == unq[i], temp)
         so = SimCompositionFunction(sim.config, sim.rng, idx)
-        sim_log(sim.config.quiet_init, string("- New Comp Function: "))
-        sim_log(sim.config.quiet_init, string("  - Num Models   : ", so.num_models))
-        sim_log(sim.config.quiet_init, string("  - Model Mapping: ", so.model_map))
-        sim_log(sim.config.quiet_init, string("  - Scale Factors: ", so.scale_factors))
-        sim_log(sim.config.quiet_init, string("  - Sum Scale Factors: ", so.sum_scale_factors))
-        sim_log(sim.config.quiet_init, string("  - Iso-Optimal Limit : ", so.iso_optimal_limit))
+        sim_log(sim.io, sim.config.quiet_init, string("- New Comp Function: "))
+        sim_log(sim.io, sim.config.quiet_init, string("  - Num Models   : ", so.num_models))
+        sim_log(sim.io, sim.config.quiet_init, string("  - Model Mapping: ", so.model_map))
+        sim_log(sim.io, sim.config.quiet_init, string("  - Scale Factors: ", so.scale_factors))
+        sim_log(sim.io, sim.config.quiet_init, string("  - Sum Scale Factors: ", so.sum_scale_factors))
+        sim_log(sim.io, sim.config.quiet_init, string("  - Iso-Optimal Limit : ", so.iso_optimal_limit))
         #
         sim.comps[i] = so
     end
 
-    sim_log(sim.config.quiet_init, string("- Total number of Composition Functions: ", num_comp_fun))
+    sim_log(sim.io, sim.config.quiet_init, string("- Total number of Composition Functions: ", num_comp_fun))
     
     sim.num_comp_fun = num_comp_fun
     sim.num_inputs += num_comp_fun   # composition function scale factors
 
 
-    sim_log(sim.config.quiet_init, string("...\nCreating Output Scale Factor"))
+    sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Output Scale Factor"))
     sim.scale_spline = SimSpline(sim.config, sim.rng, rand(sim.rng, 5:10))
     sim.num_inputs += 1
 
     if config.enable_faults
-        sim_log(sim.config.quiet_init, string("...\nCreating Failure Modes"))
+        sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Failure Modes"))
         
         sim.faults = Array{Any}(undef, num_dimensions)
         
@@ -86,7 +97,7 @@ function sim_init(config::SimConfig)
         num_fail_modes = length(unq)
         sim.num_fail_modes = num_fail_modes-1
         if 1 == num_fail_modes
-            sim_log(sim.config.quiet_init, string("- No faults present."))
+            sim_log(sim.io, sim.config.quiet_init, string("- No faults present."))
             
         else
             for i in 1:num_fail_modes
@@ -98,27 +109,27 @@ function sim_init(config::SimConfig)
 
             for i in 1:num_dimensions
                 if sim.faults[i].enabled
-                    sim_log(sim.config.quiet_init, string("- Fault ID: ", sim.faults[i].fault_id, " enabled on Dimension: ", i, ", at: ", sim.faults[i].fault_threshold))
+                    sim_log(sim.io, sim.config.quiet_init, string("- Fault ID: ", sim.faults[i].fault_id, " enabled on Dimension: ", i, ", at: ", sim.faults[i].fault_threshold))
                 end
             end
         end
     end
 
 
-    sim_log(sim.config.quiet_init, string("...\nCreating Constraint Pairs"))
+    sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Constraint Pairs"))
     
     if !config.enable_constraints
-        sim_log(sim.config.quiet_init, string("- Disabled."))
+        sim_log(sim.io, sim.config.quiet_init, string("- Disabled."))
         
     else
         for i = 1:num_comp_fun
             temp = sortperm(rand(sim.rng, sim.comps[i].num_models))
             if 2 > length(temp)
-                sim_log(sim.config.quiet_init, string("- Composition Function: ", i, ", skipping, not enough models."))
+                sim_log(sim.io, sim.config.quiet_init, string("- Composition Function: ", i, ", skipping, not enough models."))
                 continue
             end
             num_pairs = rand(sim.rng, 1:Int(floor(length(temp)/2)))
-            sim_log(sim.config.quiet_init, string("- Composition Function: ", i, ", Num Pairs: ", num_pairs))
+            sim_log(sim.io, sim.config.quiet_init, string("- Composition Function: ", i, ", Num Pairs: ", num_pairs))
             
             if 0 < num_pairs
                 for j in 1:num_pairs
@@ -127,7 +138,7 @@ function sim_init(config::SimConfig)
                     inverted = rand(sim.rng) < 0.5
                     spline = SimSpline(sim.config, sim.rng, rand(sim.rng, 10:20))
                     si = SimConstraintRegion(lhs, rhs, sim.config.constraint_margin, inverted, spline)
-                    sim_log(sim.config.quiet_init, string("  - New Constraint Pair: ", si.lhs_dimension, ", ", si.rhs_dimension, ", Inverted: ", si.inverted))
+                    sim_log(sim.io, sim.config.quiet_init, string("  - New Constraint Pair: ", si.lhs_dimension, ", ", si.rhs_dimension, ", Inverted: ", si.inverted))
                     
                     # find best unconstrained location
                     best_lhs = 0.0
@@ -182,7 +193,9 @@ function sim_init(config::SimConfig)
     end
 
     
-    sim_log(sim.config.quiet_init, string("...\nSim Initialization Complete"))
+    sim_log(sim.io, sim.config.quiet_init, string("...\nSim Initialization Complete"))
+
+    close(sim.io)
     
     return sim
 end
