@@ -1,0 +1,219 @@
+\documentclass[a4paper]{article}
+
+\usepackage[margin=1in]{geometry} % full-width
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage{longtable,array}
+\usepackage{lipsum}
+\usepackage{float}
+\usepackage{amsmath}
+
+\graphicspath{{fig/}}
+
+\title{Crucible: An Adversarial, Semi-Cooperative, Dynamic, Scalable, Multi-Paradigm Function Generator for Testing Meta and Hyper Heuristic Optimization Algorithms }
+
+\author{Daniel M. Kennedy$^1$}
+
+\date{
+	$^1$University of Central Florida, Orlando, Florida, USA\\ \texttt{da711491@ucf.edu}\\
+	\today
+}
+
+\begin{document}
+	\maketitle
+
+	\begin{abstract}
+\colorbox{yellow}{Add Abstract}
+%A state of the art test case is needed that extends upon existing published optimization test cases to better reflect the difficulty in holistically optimizing multi-objective systems of systems under deep uncertainty. This paper proposes a crucible, or arduous test case, to provide a challenging and scalable test simulation for comparing the performance and efficiency between optimization algorithms that can and cannot simultaneously learn and leverage the nature of the system during optimization.
+		
+		\noindent\textbf{Keywords:} Hyper-Heuristics, Meta-Heuristics, Benchmarking, Function Generation, Simulation
+	\end{abstract}
+
+%%
+
+\section{Introduction}
+
+\colorbox{yellow}{Expand on introduction motivation.}
+This work presents a novel test generator that builds upon frequently used optimization benchmark strategies found in literature by combining and adding features to address limitations and enhance the difficulty in new directions to facilitate experimenting with meta and hyper-heuristic algorithms.
+
+%\\- optimization is important in modern complex systems
+Optimization is a goal oriented search containing four primary components: input or decision variables, a set of all possible input values, an objective functions with a response, and a stopping criteria to stop the search. The goal of this search is to find the inputs that minimize or maximize the objective function responses, subject to the input constraints \cite{floudas_encyclopedia_2009}. Some examples of quantities and qualities that one might optimize would be the minimization of cost, wait times, or risk, as well as the maximization of profit, efficiency, or throughput.
+%\\ starting with opt in general
+Early work in optimization includes Fermat's strategy for finding a local minima/maxima of a differentiable function by solving for where the differential is equal to zero, published in 1646. This strategy was generalized to finding the shortest distance to N points by Tedenat and L'Huiller in 1810. Later important breakthroughs were the development of strategies to solve combinatorial optimazations such as Steiner tree problems for finding the shortest path in networks, the simplex algorithm for solving linear programs, as well as advancements in non-linear, integer, stochastic, and dynamic programming \cite{floudas_encyclopedia_2009}.
+
+%\\- what are meta heuristics
+Heuristic optimization strategies attempt to find practical solutions over guaranteed globally optimal ones to particular problems. A couple examples of heuristics are greedy and nearest neighbor selection. Meta-heuristic strategies are higher level, problem-independent optimization strategies that are typically constructive, local search, and / or population-based \cite{marti_fifty_2025}. % source: page 1 and 2
+Over the last few decades a considerable number of meta-heuristic optimization algorithms have been created and described in literature for tackling especially challenging optimization problems \cite{ma_performance_2023}.
+%\\- no free lunch
+According to the No Free Lunch theorems \cite{wolpert_no_1997}, optimization algorithms have varying degrees of alignment to different problem classes. If an optimization algorithm outperforms another on average for a class of problems, then it must perform worse on average for the remaining classes of problems.
+
+%\\-- generalization of optimization algorithms
+Hyper-heuristic algorithms attempt to address this constraint by searching, selecting, generating, and or sequencing lower level heuristics to attain generalized high performance optimization on challenging problems within and across problem domains \cite{burke_search_2014}. Dokeroglu et al. \cite{dokeroglu_hyper-heuristics_2024} provide a recent survey and taxonomy of hyper-heuristic approaches to include common hyper-heuristic frameworks. The authors showcase many recent advancements and elucidate how research in this area is accelerating with considerable focus on single and multi-objective optimization, bi-level, routing, timetabling, satisfiability, and flow-shop problems \cite{dokeroglu_hyper-heuristics_2024}.
+%\\- what are hyper heuristics
+Hyper-heuristics are able to leverage performance indicators for choosing lower level heuristics to employ without problem domain knowledge \cite{goos_hyperheuristic_2001}. Examples of lower level heuristics could be basic mathematical operations, boolean operations, condition-action rules, a domain specific grammar, as well as operations that modify the current hyper-heuristic strategy. Meta-heuristics are frequently employed at the hyper and lower levels to guide solver selection, set parameter values, and in generating new meta-heuristics. The strategies include Particle Swarm Optimization, Genetic Programming, Monte Carlo Tree Search, as well as machine learning strategies such as Deep Learning, Q-Learning, and Reinforcement Learning. The close connection between hyper and meta-heuristics motivates research that will impact both areas \cite{burke_search_2014}, \cite{dokeroglu_hyper-heuristics_2024}.
+
+%\\- Modern, complex systems leverage sim-opt
+The fields of simulation and optimization have evolved a synergistic relationship as simulation-based optimization that can better tackle optimizing systems using models that are more reflective of the complexities and uncertainties of the real-world \cite{fu_handbook_2015}. Simulation is useful for analyzing systems that include randomness, systems that are impossible or expensive to observe in the real-world, mathematical models in which analytical solutions are extremely complicated or impossible to find analytic solutions, and when mathematical models are extremely expensive or impossible to validate \cite{maria_introduction_1997}. Some examples of simulation applications ranging from high to low abstraction include: Population Dynamics, Health Economics, Waste Management, Supply Chains, Transportation, Call Centers, Emergency Departments, and Automotive Control Systems \cite{borshchev_system_2004}.
+
+Simulation-based optimization combines the evaluation of Monte Carlo simulation with optimization algorithms to find optimal inputs of objective functions that include randomness to minimize or maximize the expected value of the simulation responses. This randomness can be from a stationary or non-stationary distribution, potentially as a function of input variables, and include the occurrence of random events \cite{floudas_encyclopedia_2009}. Simulation-based optimization also commonly employs randomness in the search process \cite{fu_handbook_2015}, frequently leveraging meta-heuristic strategies such as Tabu Search, Evolutionary / Genetic Algorithms, Simulated Annealing, and Bayesian Optimization \colorbox{yellow}{[REFs]}.
+
+%\\- used in mdo
+Simulation-based optimization has strong associations with the field of multi-disciplinary optimization. Both of which often search for robust answers in light of uncertainty. Multi-Disciplinary Optimization (MDO) is a method for optimizing problems with stong interactions between multiple disciplines by connecting their models such that model parameters can be optimized in concert, informed by cross-communication of model responses. MDO problems can contain thousands of decision variables and tens of thousands of analysis variables for just a single domain. Moreover, MDO problems can include multiple conflicting objectives \cite{haftka_aiaa_nodate}.
+
+Multi-Disciplinary Design Optimization (MDDO) is by nature an extension of single disciplinary Engineering Design Optimization (EDO). EDO problems are generally solved using the same approaches as simulation based optimization and mathematical optimization. One important difference is that outputs from disciplines are often inputs to other disciplines. This can create coupled input dependency loops requiring multiple levels of solvers. However, by optimizing multiple disciplines simultaneously, MDDO can decrease cost, design time, and uncertainty while increasing system performance. MDDO are frequently multi-objective and constrained with many viable options along the Pareto front that can be interrogated and considered as a family of solutions. As with Simulation Based Optimization, uncertainty must also be considered, not just in input variables but in responses and constraints. Designs often are active on the edge of a constraint, leading to a design that becomes unreliable when uncertainty is added because the constraint is violated. Moreover, designs lack robustness without considering uncertainty in inputs and objective functions \cite{martins_engineering_2021}.
+
+%\\- simopt and edo are used to facilitate decision support
+Frequently simulation is used in the decision analysis process for understanding sensitivities and potential futures \cite{marchau_decision_2019}.
+\colorbox{yellow}{expand}
+
+%\\-- what is decision support
+%\\--- what is decision analysis
+%\\---- what is decision making
+
+Marchau et al. (2019) \cite{marchau_decision_2019} provide a mapping of levels of uncertainty to the knowledge available to a decision maker for selecting the best policy given understanding of potential future scenarios. The levels of uncertainty span complete certainty to total ignorance with four gradations between. Complete certainty and total ignorance are capstones of uncertainty in which you have complete knowledge or no knowledge. Optimization under complete certainty would require no calculation because one already knows exactly how the system will behave and can pick the best policy. No optimization is possible under total ignorance because the system response is unknown. The authors describe approaches to decision making within the intermediate levels. Level 1 uncertainties deal with short-term decisions where historical data can be extrapolated to predict a near-term future. The authors recommend sensitivity and perturbation techniques for this level. Level 2 uncertainties are probabilistic in nature. The authors recommend using statistical tools for this level. Level 3 uncertainties relate to a limited set of possible futures that are understood and can be predicted well enough to select a robust policy for them to achieve a favorable outcome. Lastly, level 4 uncertainty, or deep uncertainty, is pervasive and extremely difficult to model, or cannot currently be modeled, and is not sufficiently reduced with more information.
+
+A structure for Robust Decision Making (RDM) is important for systems with deep uncertainty \cite{marchau_decision_2019}. These are systems in which there is limited knowledge and agreement of their external context, how the system works, the system boundaries, as well as the relative importance of system outcomes. This creates a deficiency in available knowledge of the system for decision making. Holistic decision making relies on understanding alternatives and their implementation consequences. Moreover, a decision  making framework should facilitate learning and allow adaptation as knowledge is gained. RDM is performed in multiple iterations, stress testing wide ranging scenarios, seeking robust over optimal strategies, applying adaptive strategies, and utilizing computer modeling to explore options and tradeoffs.
+
+%\\- relationship between the goals of hyper-heuristic 
+\colorbox{yellow}{How optimization is used in decision making}
+
+%\\-------- how relates to deception and cooperation
+\colorbox{yellow}{How decision making in military constructive simulation relates to deception and adversarial competition.}
+
+\colorbox{yellow}{How cooperative decision making (Delphi Method) relates to cooperative optimization in hyper-heuristics.}
+
+\colorbox{yellow}{Why uncertainty is essential in simulation for robust decision making.}
+
+\section{Benchmarking Meta-Heuristics}
+%\\- testing of algorithm performance
+Continued research into experimentation of algorithms is important not just for measuring algorithm performance, but also for understanding the nature of algorithms, helping identify research directions into new algorithms, and guiding new analytical tools \cite{mcgeoch_experimental_2001}, \cite{beiranvand_best_2017}, \cite{di_fiore_active_2024}, \cite{tedford_benchmarking_2010}. Moreover, test cases are needed that can test the quality of the measuring devices used to evaluate algorithm performance \cite{lizarraga_set_2008}. 
+
+Hillstrom (1976) provides an early example of systematic computational experimentation of algorithms through the creation of a test methodology to evaluate and compare algorithm performance against a variety of problems \cite{hillstrom_simulation_1976}. Some limitations of this set are that the problems are unconstrained, non-stochastic, and not black box. In a follow-on paper, the author recommends that problem sets should not only pull from real-world examples but also include problems designed to test the algorithms using nonlinearity and ill-conditioning as well as varying topographies, residuals, and dimensions \cite{hillstrom_simulation_1977}. This work was further expanded in a 1981 paper with many more test problems \cite{more_testing_1981}. While it still contained the limitations of the previous work, an important difference was the emphasis on testing algorithm reliability and robustness in addition to efficiency.
+
+Another example of creating tests to experiment on algorithms was in 1992 when the United States Army High Performance Computing Research Center and Argonne National Laboratory collaboration released a collection of difficult tests used for evaluating the robustness and performance of the MINPACK-2 optimization software  \cite{averick_minpack-2_1992}. These tests were required to come from real-world problems and designed to scale to exercise high performance computing. The problems included fluid flow, elasticity, combustion, superconductivity, and others. Some limitations of this test set were that they problems were unconstrained, the objective functions were available to the optimizer, and the problems were deterministic, not stochastic.
+
+Experimenting with algorithms also includes benchmarking to comparing the performance between different algorithms on these test problems. This requires care to make sure results are fair and unbiased. Benchmark test problems are not only useful for understanding differences in algorithm performance but also for comparing algorithms to select one that is more appropriate for a particular problem. Additionally, baseline test scores can be used when regression testing algorithm improvements or developing new ones. Tests for benchmarking optimization algorithms typically consist of real-world problems, randomly generated problems, and pre-generated problems. Real-world test cases provide a concrete example for testing algorithms, but are hard to generalize. Randomly generated tests can be hard to ground in real-world scenarios, but can provide many cases for studying algorithm performance and behavior. Beneficial qualities of a test suite include having a large variety of scenarios, variety of difficulty, and known solutions for comparing to performance \cite{beiranvand_best_2017}.
+
+In Floudas and Pardalos' 1999 handbook of test problems \cite{floudas_handbook_1999} one can find roughly 200 problems of varying sizes and difficulties with best known solutions, often pulled from specific references and including a discussion of the importance of the nature of the problems and necessary background material. In addition to test cases representing real world problems, there are many cases that are randomly generated with known solutions and others that are designed to provide specific types of challenges to algorithms. While Floudas and Pardalos' handbook provides a wide array of problems across many domains, they are mathematical and deterministic in nature. A simulation is not required for modeling input and response distributions or stochastic behavior. The optimizer has knowledge of the objective functions, constraints, coefficients, and bounds of decision variables, only needing to solve for the input values that lead to the global minimum or maximum. The problems usually contain a small countable number of solutions and less than a dozen design variables. Some problems contain upward of a hundred variables and a small set of batch processing problems contain thousands of variables. Lastly, nearly all of the problems are not scalable with the exception of a series of problems that are scalable as a function of the number of atoms when solving for energy potential in N-body clusters. However, the authors do provide references to a few related test generators \cite{floudas_handbook_1999}.
+
+Pasupathy and Henderson (2006) discuss the need for and construction of a testbed of simulation optimization problems to support the development and comparison of simulation optimization algorithms, as well as to identify particularly challenging problems. A feature class that is not present in the provided test classes are tests that are designed for scalability of complexity. Another feature not present that could benefit the testbed would be to include problems that require mixed or multilevel simulation strategies with elements of multi-discipline design variables interactions, matchmaking combinations, discrete event, time series, multi-level constraint optimization, and network problems \cite{pasupathy_testbed_2006}. Addis and Locatelli (2007) identify the need for a class of scalable global optimization test functions and provide a set of unconstrained problems that can be scaled in difficulty through user defined and random input parameters. However, a couple limitations to these tests are the lack of constraints and stochastic effects \cite{addis_new_2007}.
+
+A recurring validation strategy for meta-heuristic algorithms is to compare the algorithm's performance with others across a common set of test cases. These are typically standard challenging math functions (uni-modal, multi-modal, and fixed dimension multi-modal) and common engineering problems (welded beam, pressure vessel design, speed reducer, tension-compression spring design, etc.). The mathematical test functions are generally scalable in number of dimensions, have a known optimal value, but not optimal inputs, are non linear and/or non convex, and the search space is bounded, but the inputs are unconstrained. Between the mathematical test functions and engineering design problems an overall limitation is that test functions are not scalable in the number of objective functions and constraints and do not include stochastic effects with only a few exceptions. Moreover, the functions and constraints are known to the optimizer \cite{sharma_metaheuristic_2023}.
+
+%\\-- these problems have limitations
+Nearly every year since 2005 the Congress on Evolutionary Computation (CEC) has released benchmark problems which are frequently used in benchmarking meta-heuristic optimization algorithms. More recently, black box optimization problems from the Genetic and Evolutionary Computation Conference (GECCO) are used for benchmarking as well \cite{sharma_metaheuristic_2023}. The CEC 2005 real parameter single objective optimization (RPSOO) competition benchmark problems addressed limitations in contemporary multi-heuristic testing and comparison by providing updates to standard unimodal and multimodal mathematical functions to include input shifting and rotation, response biasing, hybrid functions, as well as providing a recipe for initializing, termination, and tabulating results for competition. These problems were provided in the MATLAB, C, and JAVA programming languages and evaluated up to 50 dimensions \cite{liang_problem_2005}. The CEC 2008 competition contained similar single objective mathematical problems to 2005 as well as a "DoubleDip" test function generator. This competition definition increased the difficulty by scaling the required dimensions up to one thousand \cite{tang_benchmark_2008}.  The CEC 2013 competition on niching methods for multi-modal optimization included problems that had many global and local optima. These problems were selected to reflect how many real-world problems are multi-modal and it is often desirable to locate many satisfactory solutions. Participants were scored on the number of global optima found within a maximum function evaluation budget \cite{li_benchmark_2013}.
+
+The CEC 2013 real parameter optimization competition improved and expanded on the earlier functions to include a stipulation that the problem functions must be treated as black box and not used by the algorithms. The functions were unimodal, multi-modal, and composition functions created using the weighted sum of basic functions \cite{liang_problem_2013}. These problems were updated and expanded in 2014 and included an interesting feature of a local optimum trap at the origin. Functions were evaluated up to one hundred dimensions \cite{liang_problem_2014}. In 2015, the CEC single objective competition included a severe constraint on the number of function evaluations allowed to promote research in optimization algorithms that are fitting for computationally expensive simulations. The problems were unimodal, multi-modal, hybrid, and composite mathematical functions, evaluated up to thirty dimensions and fifteen hundred function evaluations (FES). For comparison, the 2014 problems allowed evaluation up to one million FES for the one hundred dimensional problems \cite{chen_problem_2015}.
+
+CEC 2015 included another single objective real parameter competition, however instead of the severe constraint on function evaluations it allowed the competitors to optimize some parameters for their algorithms on each problem, which was previously discouraged \cite{liang_problem_2015}. The CEC 2018 "100-Digit Challenge" competition included ten mathematical benchmark functions and removed the function evaluation limitation to test the ability of algorithms to find the optimal value up to ten digits of accuracy with a time limit. Participants were allowed limited tuning of algorithm parameters, but had to use the same algorithm for all problems \cite{price_problem_2018}. The CEC 2020 and 2021 single objective real parameter competitions expanded on the previous ones by allowing many more function evaluations and adding translation features respectively \cite{yue_problem_2020} \cite{mohamed_problem_2020}. The CEC 2022 single objective real parameter competition included a feature for the hybrid functions that randomly maps input dimensions to different basic functions \cite{kumar_problem_2022}.
+
+%//
+
+A limitation across the aforementioned CEC single objective competitions was a lack of feasibility constraints on solutions. The CEC 2006 constrained real parameter optimization competition provides mathematical functions with constraints to motivate overcoming challenges with including constraints in meta-heuristic optimization algorithms. The functions were not required to be treated as black-box, however the participants were discouraged from tuning the algorithms to individual problems or domains \cite{liang_problem_2006}. The CEC 2010 constrained real parameter competition built upon previous work to provide scalable single objective constrained mathematical benchmark problems. The eighteen problems were available for ten and thirty dimensions, with varying numbers of constraints up to four. Each evaluation of an objective function or constraint counted towards the maximum function evaluation limit \cite{mallipeddi_problem_2010}. The CEC 2017 constrained real parameter competition further expanded the difficulty by raising the number of dimensions in problems to one hundred. However, the maximum number of constraints was only raised to six for one problem \cite{wu_problem_2016}. While the difficulty was extended to include feasibility constraints, these problems were limited by only having a single objective function.
+
+%//
+
+
+In 2007, the CEC held a competition for multi-objective optimization with emphasis not only finding but also approximating the set of Pareto-optimal solutions. This is motivated to improve decision making in consideration of decision maker preferences \cite{huang_problem_2007}. The test set was based on functions from OKA2 \cite{hutchison_test_2004}, SYMPART \cite{obayashi_capabilities_2007}, ZDT \cite{zitzler_comparison_2000}, DTLZ \cite{deb_scalable_2002}, and WFG \cite{huband_scalable_2005}. The Walking Fish Group (WFG) Test Suite \cite{huband_scalable_2005} was specifically created to address limitations in the ZDT and DTLZ tests among others by combining shape functions with transformation functions to create a wide variety of test problems that are scalable in the number of objective functions and parameters, non-separable, deceptive, with a variety of Pareto optimal front geometries. Some limitations remained however. The WFG suite is not a function generator program itself, but a recipe for configurable, composable test functions with specific characteristics. Moreover, the problems are unconstrained, not black box, not dynamic, and not stochastic. A couple years later, the CEC 2009 multi-objective competition provided a mix of unconstrained and constrained benchmark problems for testing multi-objective evolutionary optimization algorithms \cite{zhang_multiobjective_2009}.
+
+In 2019, the CEC held a competition for multi-modal multi-objective optimization that enhanced the problem challenge by providing coexisting local and global Pareto sets, scalable Pareto sets and objective functions, as well as the standard scalable number of decision variables \cite{liang_problem_2019}. In the following year, the CEC 2020 problems further enhanced the difficulty with many more problems with scalable objective functions as well as scalable number of Pareto sets \cite{liang_problem_2019-1}. Multi-modal multi-objective optimization problems also extend to the path planning. CEC 2021 provided a competition in this domain by providing path planning problems on two-dimensional grids inspired by real world city roads. The problems required minimizing the length of the solution path, the number of congested regions encountered, the number of intersections encountered, cumulative penalty of a path. In some problems checkpoint locations were required to travel through for a solution to be feasible \cite{liang_problem_2020}.
+
+The Comparing Continuous Optimizers (COCO) platform \cite{hansen_coco_2021} is frequently used for black box testing of meta-heuristic optimizers by algorithm designers as well as through the Genetic and Evolutionary Computation Conference (GECCO) optimization challenges \cite{noauthor_bbob_nodate}, \cite{sharma_metaheuristic_2023}. The platform is used for running experiments, collecting data, plotting, and comparing results for different solvers. It contains built-in benchmarking functions and can be extended with more. The built in functions are similar to the CEC functions previously discussed and include noiseless and noisy single objective, bi-objective noiseless, large scaled, and mixed integeter functions. While the test suite contains many benchmark function options, the user is not freely able to mix and match the different features as the problem sets are fixed.
+
+%//
+
+One limitation to the CEC challenges mentioned thus far is that all of the problems are static not dynamically changing over time. The CEC 2009 competition on dynamic optimization provided a challenge to meta-heuristic algorithms that better reflected the dynamic nature of real-world problems. The problems use a dynamic benchmark generator to evolve mathematical functions at discrete events over time. Sixty events at pre-determined time steps move the optimal value, perform rotations, and can change the number of dimensions within a single problem. Some of the event parameter operations can even be random or chaotic \cite{li_benchmark_2008}. The CEC 2022 competition on dynamic multi-modal optimization used a function generator with parameters to control the number of global minima and the difficulty of finding them. However, these parameters are internal to the tool, the user can only select the program and scenario to run. An interesting aspect of this competition was the focus on not only detecting the optimum but tracking it over time using past information \cite{ahrari_problem_2022}.
+
+CEC 2022 also included a parallel competition with finding and tracking multiple optima in dynamic environments. This was motivated by ongoing work in dynamic evolutionary algorithm adaptation as well as the need of decision makers to be able to select between multiple optimal options in changing environments \cite{luo_benchmark_2022}. The problems are mostly derived from the CEC 2013 competition on niching methods for multi-modal optimization \cite{li_benchmark_2013}. The landscape of the problems can change dynamically in the height, widths, and positions of optima as well as function rotation. As with the 2009 competition, the parameter changes at events can be steps, random, or chaotic, and the problems include sixty events and pre-determined frequencies \cite{luo_benchmark_2022}.
+
+%//
+
+
+\subsection{Benchmarking Limitations}
+
+As the competition problem challenge and complexity increases, there is a trend in providing black box problem generators. However, these are limited in the variables that are exposed to algorithm developers. Moreover, these problems are single paradigm, not a mixture of problem paradigms such as flow shop combined with routing, which are needed for challenging hyper-heuristic algorithms and supporting research into generalized hyper-heuristic algorithms \colorbox{yellow}{REF}. While the CEC problems feature stochastic composition and changes in landscapes over time, there are almost no instances of the randomness in decision variable inputs or response outputs that are common in simulation models and multi-objective multi-disciplinary design optimization. Along these same lines, the problems are limited by not providing variable fidelity that is often found in simulations. Level of fidelity is related to execution budget and can be exploited by finding solutions using meta models and parallel processing \colorbox{yellow}{REF}. Lastly, while some tests provide deception with local optima traps, the problems themselves are not designed to be adversarial by intentionally moving the optimum to evade solving or semi-cooperative by randomly providing wrong or infeasible answers to distract the search and stress the robustness of the algorithm software.
+
+In light of these limitations, this work aims to combine proven benchmarking strategies in a multi-paradigm, adversarial, semi-cooperative, dynamic, highly scalable, stochastic environment to provide a wide range of extremely challenging problems for experimenting with hyper and meta-heuristic optimization algorithms.
+
+
+\subsection{Crucible Simulation Requirements}
+
+This section describes the derivation of requirements for the crucible simulation.
+
+\colorbox{yellow}{introduction sentence.}
+
+
+Table: \ref{tbl:sim-reqs}
+
+\begingroup
+
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\include{req_table.tex}
+
+\endgroup
+
+\section{Simulation Architecture}
+
+The Crucible simulation is written in the Julia \colorbox{yellow}{[REF]} programming language to provide compiled performance with repeatable environments (Req. 1, 3).
+
+Scenario level randomization is controlled by seeding an Xoshiro random number stream from the Random package using the scenario seed configuration parameter (Req. 3, 48). This stream is used for constructing the simulation prior to execution (Req. 2).
+
+Run level randomization is controlled by seeding another Xoshiro random number stream using the noise seed configuration parameter plus the run iteration (Req. 3, 48).
+
+Due to dynamic and adversarial simulation features, each simulation run is coupled to the previous run and cannot be parallelized. The previous run score and number of iterations is stored as simulation state between runs. However, simulations with different starting noise seeds or starting input values can be parallelized to support niching optimization methods and validation of results.
+
+The number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter after the simulation is constructed.
+
+A simulation run is performed by calling the sim\_eval function with the simulation object , the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
+
+After each simulation run, the simulation object parameter num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7).
+
+During simulation construction a log of the scenario features and configuration parameters is written to the filename provided in the logfile configuration parameter or the file "logfile.txt" by default (Req. 8).
+
+\colorbox{yellow}{add table for sim configuration parameters}
+
+\colorbox{yellow}{describe simulation architecture.}
+
+\section{Simulation Features}
+
+\subsection{Basic Equations}
+
+The foundational element for creating landscapes in the simulation are basic equations. Basic equations are randomly generated spline functions using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand(). The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
+
+\subsection{Governing Equations and Model Functions}
+
+Governing equations are used to map input values to model functions. A model response is calculates using the equation: f(g(x)), where x is are the input parameters, g() is the governing equation, and f() is the model function. The model functions and governing equations are created using the spline generator (Req. 23).
+
+\subsection{Composition Functions}
+
+Composition functions are created by taking the weighted sum of model responses (Req. 23, 24). The number of composition functions and the assignment of model functions to composition functions is random based on scenario seed and scaled by number of dimensions (Req. 14, 27). Model function weights are randomly chosen during scenario creation. Randomly assigning model functions to different composition functions creates a mixture of separable and non-separable inputs (Req. 12).
+
+For each composition function, an additional input dimension is created for a scaling effect on the composition function response. This scaling function uses the spline basic equation generator. When the simulation is evaluated, this scaling multiplier is applied to the composition function (Req. 30). For each node, an additional input dimension is created using the same process and applied as a scaling factor to the combination of composition functions. This results in D + C + 1 inputs per node, where D is the number of dimensions, C is the number of scale factors for composition functions, plus one for the final combined scaling factor function.
+
+\subsection{Stochastic Features}
+
+
+\subsection{Fitness Evaluation}
+
+
+\colorbox{yellow}{describe features that satisfy the above requirements.}
+
+\section{Experimentation Method}
+
+\colorbox{yellow}{tbd.}
+
+\section{Experiment Results}
+
+\colorbox{yellow}{tbd.}
+
+\section{Conclusions}
+
+\colorbox{yellow}{tbd.}
+
+
+\bibliography{mybib,cec}
+\bibliographystyle{ieeetr}
+
+
+\end{document}
