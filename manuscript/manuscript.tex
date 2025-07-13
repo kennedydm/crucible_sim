@@ -8,7 +8,7 @@
 \usepackage{float}
 \usepackage{amsmath}
 
-\graphicspath{{fig/}}
+\graphicspath{{figs/}}
 
 \title{Crucible: An Adversarial, Semi-Cooperative, Dynamic, Scalable, Multi-Paradigm Function Generator for Testing Meta and Hyper Heuristic Optimization Algorithms }
 
@@ -165,7 +165,7 @@ Due to dynamic and adversarial simulation features, each simulation run is coupl
 
 The number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter after the simulation is constructed.
 
-A simulation run is performed by calling the sim\_eval function with the simulation object, the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6). No other information about the scenario and run is reported to the optimizer (Req. 4).
+A simulation run is performed by calling the sim\_eval function with the simulation object , the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
 
 After each simulation run, the simulation object parameter num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7).
 
@@ -177,20 +177,101 @@ During simulation construction a log of the scenario features and configuration 
 
 \section{Simulation Features}
 
-\subsection{Basic Equations}
+\subsection{Spline Basic Functions}
 
-The foundational element for creating landscapes in the simulation are basic equations. Basic equations are randomly generated spline functions using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand(). The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
+The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand(). The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
 
-\subsection{Governing Equations and Model Functions}
+\subsection{Governing Functions and Model Functions}
 
-Governing equations are used to map input values to model functions. A model response is calculates using the equation: f(g(x)), where x is are the input parameters, g() is the governing equation, and f() is the model function. The model functions and governing equations are created using the spline generator (Req. 23).
+The governing functions and model functions are created using the spline basic function generator (Req. 22, 23).
+The model response landscape is created by mapping design variable inputs to model function outputs through a governing function (Req. 24).
+For example, a governing function g(x) (Fig. \ref{fig:basic_eq_mdl_1_gov_fun}) is used to map input value x to model function f(u) (Fig. \ref{fig:basic_eq_mdl_1_mdl_fun}) resulting in a multi-featured model response landscape f(g(x)) (Fig. \ref{fig:basic_eq_mdl_1_mdl_resp}).
+Figure \ref{fig:landscape_mdl_19_mdl_resp} illustrates an example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, and non-linear (Req. 28). This example shows variable conditioning between the input and response (Req. 31), many potential optimal locations with values at 1.0 to support niching optimization methods (Req. 18), as well as multiple deceptive basins near 1.0 (Req. 29).
+Flattening may occur when a governing or model function is clamped in the range [0, 1], however additional random flattening can be injected using the enable\_flattening configuration parameter (Figure \ref{fig:flat_mdl_1_mdl_resp_flat}). Moreover, additional random discontinuity can be injected by randomly inverting regions using the enable\_inversion configuration parameter (Figure \ref{fig:invert_mdl_1_mdl_resp_invert}).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{basic_eq_mdl_1_gov_fun.png}
+	\caption{Governing function created using a spline basic function.}
+	\label{fig:basic_eq_mdl_1_gov_fun}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{basic_eq_mdl_1_mdl_fun.png}
+	\caption{Model function created using a spline basic function.}
+	\label{fig:basic_eq_mdl_1_mdl_fun}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{basic_eq_mdl_1_mdl_resp.png}
+	\caption{Model response landscape created by mapping design variable input to model function input through a governing function.}
+	\label{fig:basic_eq_mdl_1_mdl_resp}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{landscape_mdl_19_mdl_resp.png}
+	\caption{Example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, non-linear, and deceptive basins.}
+	\label{fig:landscape_mdl_19_mdl_resp}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{flat_mdl_1_mdl_resp_flat.png}
+	\caption{Example random flattening injected using the enable\_flattening configuration parameter.}
+	\label{fig:flat_mdl_1_mdl_resp_flat}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{invert_mdl_1_mdl_resp_invert.png}
+	\caption{Example random discontinuity injected using the enable\_inversion configuration parameter.}
+	\label{fig:invert_mdl_1_mdl_resp_invert}
+\end{figure}
 
 \subsection{Composition Functions}
 
-Composition functions are created by taking the weighted sum of model responses (Req. 23, 24). The number of composition functions and the assignment of model functions to composition functions is random based on scenario seed and scaled by number of dimensions (Req. 14, 27). Model function weights are randomly chosen during scenario creation. Randomly assigning model functions to different composition functions creates a mixture of separable and non-separable inputs (Req. 12).
+Composition functions are created by taking the weighted sum of model responses (Req. 25). The number of composition functions and the assignment of model functions to composition functions is random based on scenario seed and scaled by number of dimensions (Req. 14, 27). Model function weights are randomly chosen during scenario creation. Randomly assigning model functions to different composition functions creates a mixture of separable and non-separable inputs (Req. 12).
 
-For each composition function, an additional input dimension is created for a scaling effect on the composition function response. This scaling function uses the spline basic equation generator. When the simulation is evaluated, this scaling multiplier is applied to the composition function (Req. 30). For each node, an additional input dimension is created using the same process and applied as a scaling factor to the combination of composition functions. This results in D + C + 1 inputs per node, where D is the number of dimensions, C is the number of scale factors for composition functions, plus one for the final combined scaling factor function.
+For each composition function, an additional input dimension is created for a scaling effect on the composition function response. This scaling function uses the spline basic function generator. When the simulation is evaluated, this scaling multiplier is applied to the composition function (Req. 30). For each node, an additional input dimension is created using the same process and applied as a scaling factor to the combination of composition functions. This results in D + C + 1 inputs per node, where D is the number of dimensions, C is the number of scale factors for composition functions, plus one for the final combined scaling factor function.
 
+Figure \ref{fig:2d_const_3_1_base} illustrates an example composition lanscape of the sum of two models. Many optimal locations at 1.0 are present to support niching optimization methods (Req. 18). An iso-optimal surface is created by scaling the composition response and inverting any portion that exceeds a value of 1.0. Figure \ref{fig:2d_const_3_1_iso} illustrates an iso-optimal surface that provides many disconnected iso-optimal regions (Req. 44) further facilitating niching optimization methods (Req. 18). Iso-optimal surfaces are scaled with the number of composition functions (Req. 45) with an additional global iso-optimal surface created for the overall node response (Req. 43).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{2d_const_3_1_base.png}
+	\caption{Example composition function response of two models.}
+	\label{fig:2d_const_3_1_base}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{2d_const_3_1_iso.png}
+	\caption{Composition function response with added iso-optimal surface feature.}
+	\label{fig:2d_const_3_1_iso}
+\end{figure}
+
+\subsection{Skewing and Constraints}
+
+During the creation of composition functions, pairs of dimensions are randomly coupled to create non-separability and non-axis alignment effects (Req. 12, 26). A skewing effect is created by randomly picking a skewing factor for each input. The first input is skewed as a function of the second input, then the second input is skewed as a function of the skewed first input. Skewing may be positive or negative and is controlled using the enable\_skewing and max\_skew\_magnitude configuration parameters. Figure \ref{fig:2d_const_3_1_iso_skew} illustrates skewing applied to the previous example. Skewed model inputs are wrapped in the range [0, 1] to remain valid and prevent regions of the solution landscape from becoming unreachable.
+
+Feasibility constraints are created on coupled composition pairs using a constraint function. The constraint function is created using the spline basic function generator (Req. 32). One of the pair input values is selected as the constraint function input. Feasibily is determine by checking if the other pair input value is above or below (chosen at random for the constraint) of the spline response. The couple pair input values are transformed using their respective governing functions prior to evaluating the constraint function creating a varied feasibility landscape (Req. 33). Figure \ref{fig:2d_const_3_1_iso_skew_const} builds on the previous skewing example with additional infeasibility regions shown in white (Req. 34). Constraints are applied to pairs of inputs resulting in separable and non-separable constraints when more than one constraint is present (Req. 35).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{2d_const_3_1_iso_skew.png}
+	\caption{Composition function response with added wrapped skewing feature to create non-separability and non-axis alignment.}
+	\label{fig:2d_const_3_1_iso_skew}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{2d_const_3_1_iso_skew_const.png}
+	\caption{Composition function response with added feasibility constraint feature.}
+	\label{fig:2d_const_3_1_iso_skew_const}
+\end{figure}
 \subsection{Stochastic Features}
 
 
