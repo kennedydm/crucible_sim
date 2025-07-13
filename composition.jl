@@ -9,7 +9,7 @@ mutable struct SimCompositionFunction
     scale_spline            :: SimSpline
     #
     # num_constraint_pairs    :: Int
-    constraints             :: Array{Any}
+    coupling                :: Array{Any}
     #
     function SimCompositionFunction(config::SimConfig, rng::Xoshiro, map_in::Array{Int})
         ret = new()
@@ -20,7 +20,7 @@ mutable struct SimCompositionFunction
         ret.iso_optimal_limit = (0.8 + 0.2 * rand(rng)) * ret.sum_scale_factors
         ret.scale_spline = SimSpline(config, rng, rand(rng, config.min_scale_knots:config.max_scale_knots))
         #
-        ret.constraints = []
+        ret.coupling = []
         #
         return ret
     end

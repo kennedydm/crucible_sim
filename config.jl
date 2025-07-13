@@ -11,19 +11,27 @@ mutable struct SimConfig
     #
     input_noise_sigma           :: Float64
     model_noise_sigma           :: Float64
-    random_fault_freq           :: Float64
+    flattening_rate             :: Float64
+    inversion_rate              :: Float64
+    random_fault_rate           :: Float64
     constraint_margin           :: Float64
     min_knots                   :: Int
     max_knots                   :: Int
     min_scale_knots             :: Int
     max_scale_knots             :: Int
+    min_constraint_knots        :: Int
+    max_constraint_knots        :: Int
+    max_skew_magnitude          :: Float64
     knot_feedback               :: Float64
     #
     enable_input_noise          :: Bool
     enable_model_noise          :: Bool
     enable_constraints          :: Bool
+    enable_flattening           :: Bool
+    enable_inversion            :: Bool
     enable_faults               :: Bool
     enable_iso_optimal          :: Bool
+    enable_skewing              :: Bool
     enable_comp_scale_inputs    :: Bool
     enable_total_scale_input    :: Bool
     #
@@ -43,19 +51,27 @@ mutable struct SimConfig
         #
         ret.input_noise_sigma = 0.003
         ret.model_noise_sigma = 0.03
-        ret.random_fault_freq = 0.05
+        ret.flattening_rate = 0.3
+        ret.inversion_rate = 0.3
+        ret.random_fault_rate = 0.05
         ret.constraint_margin = 0.05
         ret.min_knots = 10
         ret.max_knots = 20
         ret.min_scale_knots = 5
         ret.max_scale_knots = 10
+        ret.min_constraint_knots = 10
+        ret.max_constraint_knots = 20
+        ret.max_skew_magnitude = 0.3
         ret.knot_feedback = 0.5
         #
         ret.enable_input_noise = true
         ret.enable_model_noise = true
         ret.enable_constraints = true
+        ret.enable_flattening = true
         ret.enable_faults = true
+        ret.enable_inversion = true
         ret.enable_iso_optimal = true
+        ret.enable_skewing = true
         ret.enable_comp_scale_inputs = true
         ret.enable_total_scale_input = true
         #
@@ -78,22 +94,32 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     #
     sim_log(io, config.quiet_init, string("- input_noise_sigma          : ", config.input_noise_sigma        ))
     sim_log(io, config.quiet_init, string("- model_noise_sigma          : ", config.model_noise_sigma        ))
-    sim_log(io, config.quiet_init, string("- random_fault_freq          : ", config.random_fault_freq        ))
+    sim_log(io, config.quiet_init, string("- flattening_rate            : ", config.flattening_rate          ))
+    sim_log(io, config.quiet_init, string("- inversion_rate             : ", config.inversion_rate           ))
+    sim_log(io, config.quiet_init, string("- random_fault_rate          : ", config.random_fault_rate        ))
     sim_log(io, config.quiet_init, string("- constraint_margin          : ", config.constraint_margin        ))
     sim_log(io, config.quiet_init, string("- min_knots                  : ", config.min_knots                ))
     sim_log(io, config.quiet_init, string("- max_knots                  : ", config.max_knots                ))
     sim_log(io, config.quiet_init, string("- min_scale_knots            : ", config.min_scale_knots          ))
     sim_log(io, config.quiet_init, string("- max_scale_knots            : ", config.max_scale_knots          ))
+    sim_log(io, config.quiet_init, string("- min_constraint_knots       : ", config.min_constraint_knots     ))
+    sim_log(io, config.quiet_init, string("- max_constraint_knots       : ", config.max_constraint_knots     ))
+    sim_log(io, config.quiet_init, string("- max_skew_magnitude         : ", config.max_skew_magnitude       ))
     sim_log(io, config.quiet_init, string("- knot_feedback              : ", config.knot_feedback            ))
     #
     sim_log(io, config.quiet_init, string("- enable_input_noise         : ", config.enable_input_noise       ))
     sim_log(io, config.quiet_init, string("- enable_model_noise         : ", config.enable_model_noise       ))
     sim_log(io, config.quiet_init, string("- enable_constraints         : ", config.enable_constraints       ))
+    sim_log(io, config.quiet_init, string("- enable_flattening          : ", config.enable_flattening        ))
     sim_log(io, config.quiet_init, string("- enable_faults              : ", config.enable_faults            ))
+    sim_log(io, config.quiet_init, string("- enable_inversion           : ", config.enable_inversion         ))
     sim_log(io, config.quiet_init, string("- enable_iso_optimal         : ", config.enable_iso_optimal       ))
+    sim_log(io, config.quiet_init, string("- enable_skewing             : ", config.enable_skewing           ))
     sim_log(io, config.quiet_init, string("- enable_comp_scale_inputs   : ", config.enable_comp_scale_inputs ))
     sim_log(io, config.quiet_init, string("- enable_total_scale_input   : ", config.enable_total_scale_input ))
     #
     sim_log(io, config.quiet_init, string("- quiet_init                 : ", config.quiet_init               ))
+    sim_log(io, config.quiet_init, string("- save_debug_figs            : ", config.save_debug_figs          ))
+    
 
 end

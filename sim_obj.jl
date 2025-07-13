@@ -9,6 +9,8 @@ mutable struct SimStruct
     models          :: Array{Any}
     comps           :: Array{Any}
     faults          :: Array{Any}
+    flats           :: Array{Any}
+    inverts         :: Array{Any}
     scale_spline    :: SimSpline
 
     #
@@ -26,6 +28,8 @@ mutable struct SimStruct
         ret.models = []
         ret.comps = []
         ret.faults = []
+        ret.flats = []
+        ret.inverts = []
         ret.config = config
         ret.num_fail_modes = 0
         ret.num_inputs = 0

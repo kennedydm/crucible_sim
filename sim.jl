@@ -3,7 +3,7 @@ using Random, Interpolations
 include("./config.jl")
 include("./spline.jl")
 include("./model.jl")
-include("./constraint.jl")
+include("./coupling.jl")
 include("./composition.jl")
 include("./fault.jl")
 include("./utility.jl")

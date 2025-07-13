@@ -165,7 +165,7 @@ Due to dynamic and adversarial simulation features, each simulation run is coupl
 
 The number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter after the simulation is constructed.
 
-A simulation run is performed by calling the sim\_eval function with the simulation object , the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
+A simulation run is performed by calling the sim\_eval function with the simulation object, the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6). No other information about the scenario and run is reported to the optimizer (Req. 4).
 
 After each simulation run, the simulation object parameter num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7).
 

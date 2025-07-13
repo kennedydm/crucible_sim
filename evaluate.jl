@@ -48,7 +48,7 @@ function sim_eval(sim::SimStruct, x_in)
                 z = abs(z + randn(rng_noise) * sim.config.model_noise_sigma)
             end
 
-            if sim.config.enable_faults && 0 != sim.num_fail_modes && faults[mdl].enabled && z < faults[mdl].fault_threshold
+            if sim.config.enable_faults && 0 != sim.num_fail_modes && faults[mdl].enabled && z < faults[mdl].threshold
                 return 0.0
                 # faulted = true
                 # break
@@ -103,7 +103,7 @@ function sim_eval(sim::SimStruct, x_in)
     ret = ret / mx
 
     if !isnan(ret)
-        if sim.config.enable_faults && rand(rng_noise) < sim.config.random_fault_freq
+        if sim.config.enable_faults && rand(rng_noise) < sim.config.random_fault_rate
             return ret *= 0.0
         end
     end
