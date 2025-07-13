@@ -165,29 +165,25 @@ Due to dynamic and adversarial simulation features, each simulation run is coupl
 
 The number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter after the simulation is constructed.
 
-A simulation run is performed by calling the sim\_eval function with the simulation object , the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
+A simulation run is performed by calling the sim\_eval function with the simulation object, the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 1.0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
 
 After each simulation run, the simulation object parameter num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7).
 
 During simulation construction a log of the scenario features and configuration parameters is written to the filename provided in the logfile configuration parameter or the file "logfile.txt" by default (Req. 8).
 
+The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: $y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand()$. The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
+
 \colorbox{yellow}{add table for sim configuration parameters}
 
-\colorbox{yellow}{describe simulation architecture.}
-
 \section{Simulation Features}
-
-\subsection{Spline Basic Functions}
-
-The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand(). The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
 
 \subsection{Governing Functions and Model Functions}
 
 The governing functions and model functions are created using the spline basic function generator (Req. 22, 23).
 The model response landscape is created by mapping design variable inputs to model function outputs through a governing function (Req. 24).
-For example, a governing function g(x) (Fig. \ref{fig:basic_eq_mdl_1_gov_fun}) is used to map input value x to model function f(u) (Fig. \ref{fig:basic_eq_mdl_1_mdl_fun}) resulting in a multi-featured model response landscape f(g(x)) (Fig. \ref{fig:basic_eq_mdl_1_mdl_resp}).
+For example, a governing function $g(x)$ (Fig. \ref{fig:basic_eq_mdl_1_gov_fun}) is used to map input value x to model function $f(u)$ (Fig. \ref{fig:basic_eq_mdl_1_mdl_fun}) resulting in a multi-featured model response landscape $f(g(x))$ (Fig. \ref{fig:basic_eq_mdl_1_mdl_resp}).
 Figure \ref{fig:landscape_mdl_19_mdl_resp} illustrates an example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, and non-linear (Req. 28). This example shows variable conditioning between the input and response (Req. 31), many potential optimal locations with values at 1.0 to support niching optimization methods (Req. 18), as well as multiple deceptive basins near 1.0 (Req. 29).
-Flattening may occur when a governing or model function is clamped in the range [0, 1], however additional random flattening can be injected using the enable\_flattening configuration parameter (Figure \ref{fig:flat_mdl_1_mdl_resp_flat}). Moreover, additional random discontinuity can be injected by randomly inverting regions using the enable\_inversion configuration parameter (Figure \ref{fig:invert_mdl_1_mdl_resp_invert}).
+Flattening may occur when a governing or model function is clamped in the range [0, 1], however additional random flattening can be injected using the enable\_flattening configuration parameter (Fig. \ref{fig:flat_mdl_1_mdl_resp_flat}). Moreover, additional random discontinuity can be injected by randomly inverting regions using the enable\_inversion configuration parameter (Fig. \ref{fig:invert_mdl_1_mdl_resp_invert}).
 
 \begin{figure}
 	\centering
@@ -259,6 +255,8 @@ During the creation of composition functions, pairs of dimensions are randomly c
 
 Feasibility constraints are created on coupled composition pairs using a constraint function. The constraint function is created using the spline basic function generator (Req. 32). One of the pair input values is selected as the constraint function input. Feasibily is determine by checking if the other pair input value is above or below (chosen at random for the constraint) of the spline response. The couple pair input values are transformed using their respective governing functions prior to evaluating the constraint function creating a varied feasibility landscape (Req. 33). Figure \ref{fig:2d_const_3_1_iso_skew_const} builds on the previous skewing example with additional infeasibility regions shown in white (Req. 34). Constraints are applied to pairs of inputs resulting in separable and non-separable constraints when more than one constraint is present (Req. 35).
 
+A couple margins are included to prevent a scenario in which there are no feasible optimal solutions. The first is an input margin controlled via the constraint\_input\_margin configuration parameter that requires the input variable enter the infeasible region by at least that amount before infeasibility is declared. The second margin is a small margin around optimal locations controlled via the constraint\_optimal\_margin configuration parameter. This margin results in small islands of optimal feasible solutions in Figure \ref{fig:2d_const_3_1_iso_skew_const}.
+
 \begin{figure}
 	\centering
 	\includegraphics[width=0.5\textwidth]{2d_const_3_1_iso_skew.png}
@@ -272,8 +270,30 @@ Feasibility constraints are created on coupled composition pairs using a constra
 	\caption{Composition function response with added feasibility constraint feature.}
 	\label{fig:2d_const_3_1_iso_skew_const}
 \end{figure}
+
+
 \subsection{Stochastic Features}
 
+
+\subsection{Semi-Cooperative Features}
+
+The simulation supports a variety of semi-cooperative features. These are features in which the simulation intentionally reports randomly incorrect results (Req. 68), to include feasibility or infeasibility (Req. 69), as well as fails to execute based on pre-determined fault injection thresholds (Req. 65).
+
+During scenario creation, some input dimensions are randomly selected to include fault injection with a corresponding failure threshold and magnitude. When a fault is present and the evaluated model response falls below the failure threshold the model response will be either degraded by scaling downward (Fig. \ref{fig:fault_mdl_5_mdl_resp_fault_degrade}) or will result in a simulation executive failure (Fig. \ref{fig:fault_mdl_8_mdl_resp_fault_029}). In the event of an executive failure the simulation will report 0.0 for the fitness score and will provide no indication that a failure was triggered. Fault via degradation and fault via executive failure result in separable and non-separable failure regions (Req. 66).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{fault_mdl_5_mdl_resp_fault_degrade.png}
+	\caption{Example model fault resulting in degraded response.}
+	\label{fig:fault_mdl_5_mdl_resp_fault_degrade}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.5\textwidth]{fault_mdl_8_mdl_resp_fault_0.29.png}
+	\caption{Example model complete failure triggered at locations where the model response falls below 0.29.}
+	\label{fig:fault_mdl_8_mdl_resp_fault_029}
+\end{figure}
 
 \subsection{Fitness Evaluation}
 
