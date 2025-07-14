@@ -10,42 +10,115 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     noise_seed :: Int = sim.config.noise_seed + sim.num_iterations
     rng_noise = Xoshiro(noise_seed % 1000000)
 
+    # determine adversarial factor
+    sim.runtime_adv_factor = 1.0
+    adv_failure_factor = 1.0
+    if sim.config.enable_adversarial
+        sim.runtime_adv_factor = sim.adversarial_fitness * (1.0 + (spline_eval(sim.adversarial_spline, sim.adversarial_fitness) - 0.5) * 0.5)
 
-    #--------------------------------------------------------------------------
-    # check for random infeasibility
-    if sim.config.enable_faults
-        if rand(rng_noise) < sim.config.random_infeasible_rate
-            return NaN
+        if sim.config.enable_adversarial_failure
+            adv_failure_factor = (1 + sim.config.adversarial_failure_factor * sim.runtime_adv_factor)
         end
     end
 
-    # check for random fault
-    if sim.config.enable_faults
-        if rand(rng_noise) < sim.config.random_fault_rate
-            return 0.0
-        end
-    end
-    #--------------------------------------------------------------------------
-
-
+    
     fidelity = fidelity_base
     if fidelity < 1
         fidelity = 1
     end
     fidelity = Int(round(Float64(fidelity) ^ sim.config.fidelity_power))
 
+    # re-arrange inputs using input mapping
     x = copy(x_in)
+    if sim.config.enable_input_map        
+        # check for dynamic re-mapping event
+        if sim.config.enable_dynamic && sim.config.enable_dynamic_input_map
+            sim.next_dyn_input_remap -= 1
+            if sim.next_dyn_input_remap <= 0
+                # repeatable dynamic mapping seed
+                temp_seed = sim.config.structure_seed + sim.num_iterations
+                temp_rng = Xoshiro(temp_seed % 1000000)
+                # new input mapping
+                temp_map = sortperm(rand(temp_rng, sim.num_inputs)) # random permutation
+                # swap map values
+                # println("Swapping inputs: ", sim.input_map[temp_map[1]], ", ", sim.input_map[temp_map[2]])
+                temp = sim.input_map[temp_map[1]]
+                sim.input_map[temp_map[1]] = sim.input_map[temp_map[2]]
+                sim.input_map[temp_map[2]] = temp
+                # determine next event time
+                sim.next_dyn_input_remap = rand(temp_rng, sim.config.dyn_input_map_freq_min:sim.config.dyn_input_map_freq_max)
+            end
+        end
+
+        # re-map inputs
+        for i in 1:sim.num_inputs
+            x[i] = x_in[sim.input_map[i]]
+        end
+    end
+
+    # base and adversarial input shifting
+    # add base offsets
+    if sim.config.enable_input_shift
+        # check for dynamic input shifting
+        if sim.config.enable_dynamic && sim.config.enable_dynamic_input_shift
+            sim.next_dyn_input_shift -= 1
+            if sim.next_dyn_input_shift <= 0
+                # repeatable dynamic mapping seed
+                temp_seed = sim.config.structure_seed + sim.num_iterations
+                temp_rng = Xoshiro(temp_seed % 1000000)                
+                # create new input offsets
+                sim.offset_inputs = sim.offset_inputs .+ ((rand(temp_rng, sim.num_inputs) .- 0.5) .* 2.0) .* sim.config.dyn_input_shift_mag
+                # determine next event time
+                sim.next_dyn_input_shift = rand(temp_rng, sim.config.dyn_input_shift_freq_min:sim.config.dyn_input_shift_freq_max)
+            end
+        end
+
+        x = x .+ sim.offset_inputs
+        # add adversarial offsets
+        if sim.config.enable_adversarial && sim.config.enable_adversarial_offset
+            x = x .+ sim.offset_adversarial .* sim.runtime_adv_factor
+        end
+    end
+
+    # base and adversarial input noise
     input_noise_sigma = sim.config.input_noise_sigma
+    if sim.config.enable_adversarial && sim.config.enable_adversarial_noise
+        input_noise_sigma *= (1 + sim.config.adversarial_noise_factor * sim.runtime_adv_factor)
+    end
     if sim.config.enable_input_noise
         for i in 1:sim.num_inputs
-            x[i] = clamp(x[i] + sum(randn(rng_noise, fidelity)) * input_noise_sigma / fidelity, 0, 1)
+            x[i] = x[i] + sum(randn(rng_noise, fidelity)) * input_noise_sigma / fidelity
         end
+    end
+
+    # wrap inputs
+    for i in 1:sim.num_inputs
+        x[i] = sim_fract(x[i])
     end
     
     tot_scale_x = x[sim.num_inputs]
     
     ret :: Float64 = 0.0
     constraint = 1.0
+
+
+    #--------------------------------------------------------------------------
+    # check for random infeasibility
+    if sim.config.enable_faults
+        if rand(rng_noise) < sim.config.random_infeasible_rate * adv_failure_factor
+            update_adversarial_fitness(sim, 0.0)
+            return NaN
+        end
+    end
+
+    # check for random fault
+    if sim.config.enable_faults
+        if rand(rng_noise) < sim.config.random_fault_rate * adv_failure_factor
+            update_adversarial_fitness(sim, 0.0)
+            return 0.0
+        end
+    end
+    #--------------------------------------------------------------------------
 
     
     # for each composition function
@@ -109,6 +182,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
                 if verbose
                     println("Executive Failure")
                 end
+                update_adversarial_fitness(sim, 0.0)
                 return 0.0
             end
 
@@ -146,6 +220,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
                 if verbose
                     println("Executive Failure")
                 end
+                update_adversarial_fitness(sim, 0.0)
                 return 0.0
             end
 
@@ -176,6 +251,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
 
         # return NaN if infeasible
         if sim.config.enable_constraints && y < 1 - sim.config.constraint_optimal_margin && isnan(constraint)
+            update_adversarial_fitness(sim, 0.0)
             return NaN
         end
         
@@ -197,10 +273,22 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     # apply global iso-optimal
 
     
+    # nan check
+    if isnan(ret)
+        update_adversarial_fitness(sim, 0.0)
+        return NaN
+    end
+    
     # clamp response before returning
     ret = clamp(ret, 0, 1)
 
+    update_adversarial_fitness(sim, ret)
     return ret
+end
+
+
+function update_adversarial_fitness(sim::SimStruct, fitness::Float64)
+    sim.adversarial_fitness = sim.adversarial_fitness * sim.config.adversarial_feedback + fitness * (1 - sim.config.adversarial_feedback)
 end
 
 
@@ -230,7 +318,11 @@ function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xosh
 
     # - model output noise
     if sim.config.enable_model_noise
-        z = abs(z + sum(randn(rng_noise, fidelity)) * sim.config.model_noise_sigma / fidelity)
+        model_noise_sigma = sim.config.model_noise_sigma
+        if sim.config.enable_adversarial && sim.config.enable_adversarial_noise
+            model_noise_sigma *= (1 + sim.config.adversarial_noise_factor * sim.runtime_adv_factor)
+        end
+        z = abs(z + sum(randn(rng_noise, fidelity)) * model_noise_sigma / fidelity)
     end
 
     return z, u, false

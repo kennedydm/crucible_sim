@@ -28,13 +28,33 @@ mutable struct SimConfig
     max_skew_magnitude          :: Float64
     knot_feedback               :: Float64
     #
+    adversarial_offset_mag      :: Float64
+    adversarial_noise_factor    :: Float64
+    adversarial_feedback        :: Float64
+    adversarial_failure_factor  :: Float64
+    min_adversarial_knots       :: Int
+    max_adversarial_knots       :: Int
+    #
     dyn_model_inp_vel_mag       :: Float64
     dyn_model_gen_vel_mag       :: Float64
+    dyn_input_map_freq_min      :: Int
+    dyn_input_map_freq_max      :: Int
+    dyn_input_shift_freq_min    :: Int
+    dyn_input_shift_freq_max    :: Int
+    dyn_input_shift_mag         :: Float64
     #
+    enable_input_map            :: Bool
+    enable_input_shift          :: Bool
     enable_input_noise          :: Bool
     enable_model_noise          :: Bool
+    enable_adversarial          :: Bool
+    enable_adversarial_noise    :: Bool
+    enable_adversarial_offset   :: Bool
+    enable_adversarial_failure  :: Bool
     enable_dynamic              :: Bool
     enable_dynamic_spline       :: Bool
+    enable_dynamic_input_map    :: Bool
+    enable_dynamic_input_shift  :: Bool
     enable_constraints          :: Bool
     enable_inversion            :: Bool
     enable_flattening           :: Bool
@@ -76,13 +96,32 @@ mutable struct SimConfig
         ret.max_constraint_knots = 20
         ret.max_skew_magnitude = 0.3
         ret.knot_feedback = 0.5
+        ret.adversarial_noise_factor = 0.5
+        ret.adversarial_offset_mag = 0.1
+        ret.adversarial_feedback = 0.9
+        ret.adversarial_failure_factor = 0.5
+        ret.min_adversarial_knots = 5
+        ret.max_adversarial_knots = 10
         ret.dyn_model_inp_vel_mag = 0.05 # per 1000 iterations
         ret.dyn_model_gen_vel_mag = 0.05 # per 1000 iterations
+        ret.dyn_input_map_freq_min = 1500
+        ret.dyn_input_map_freq_max = 2500
+        ret.dyn_input_shift_freq_min = 800
+        ret.dyn_input_shift_freq_max = 1200
+        ret.dyn_input_shift_mag = 0.1
         #
+        ret.enable_input_shift = true
+        ret.enable_input_map = true
         ret.enable_input_noise = true
         ret.enable_model_noise = true
+        ret.enable_adversarial = true
+        ret.enable_adversarial_noise = true
+        ret.enable_adversarial_offset = true
+        ret.enable_adversarial_failure = true
         ret.enable_dynamic = true
         ret.enable_dynamic_spline = true
+        ret.enable_dynamic_input_map = true
+        ret.enable_dynamic_input_shift = true
         ret.enable_constraints = true
         ret.enable_flattening = true
         ret.enable_faults = true
@@ -127,13 +166,32 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- max_constraint_knots       : ", config.max_constraint_knots        ))
     sim_log(io, config.quiet_init, string("- max_skew_magnitude         : ", config.max_skew_magnitude          ))
     sim_log(io, config.quiet_init, string("- knot_feedback              : ", config.knot_feedback               ))
+    sim_log(io, config.quiet_init, string("- adversarial_offset_mag     : ", config.adversarial_offset_mag      ))
+    sim_log(io, config.quiet_init, string("- adversarial_noise_factor   : ", config.adversarial_noise_factor    ))
+    sim_log(io, config.quiet_init, string("- adversarial_failure_factor : ", config.adversarial_failure_factor  ))
+    sim_log(io, config.quiet_init, string("- adversarial_feedback       : ", config.adversarial_feedback        ))
+    sim_log(io, config.quiet_init, string("- min_adversarial_knots      : ", config.min_adversarial_knots       ))
+    sim_log(io, config.quiet_init, string("- max_adversarial_knots      : ", config.max_adversarial_knots       ))
     sim_log(io, config.quiet_init, string("- dyn_model_inp_vel_mag      : ", config.dyn_model_inp_vel_mag       ))
     sim_log(io, config.quiet_init, string("- dyn_model_gen_vel_mag      : ", config.dyn_model_gen_vel_mag       ))
-    #   
+    sim_log(io, config.quiet_init, string("- dyn_input_map_freq_min     : ", config.dyn_input_map_freq_min      ))
+    sim_log(io, config.quiet_init, string("- dyn_input_map_freq_min     : ", config.dyn_input_map_freq_max      ))
+    sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_min   : ", config.dyn_input_shift_freq_min    ))
+    sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_max   : ", config.dyn_input_shift_freq_max    ))
+    sim_log(io, config.quiet_init, string("- dyn_input_shift_mag        : ", config.dyn_input_shift_mag         ))
+    #
+    sim_log(io, config.quiet_init, string("- enable_input_map           : ", config.enable_input_map            ))
+    sim_log(io, config.quiet_init, string("- enable_input_shift         : ", config.enable_input_shift          ))
     sim_log(io, config.quiet_init, string("- enable_input_noise         : ", config.enable_input_noise          ))
     sim_log(io, config.quiet_init, string("- enable_model_noise         : ", config.enable_model_noise          ))
+    sim_log(io, config.quiet_init, string("- enable_adversarial         : ", config.enable_adversarial          ))
+    sim_log(io, config.quiet_init, string("- enable_adversarial_noise   : ", config.enable_adversarial_noise    ))
+    sim_log(io, config.quiet_init, string("- enable_adversarial_offset  : ", config.enable_adversarial_offset   ))
+    sim_log(io, config.quiet_init, string("- enable_adversarial_failure : ", config.enable_adversarial_failure  ))
     sim_log(io, config.quiet_init, string("- enable_dynamic             : ", config.enable_dynamic              ))
     sim_log(io, config.quiet_init, string("- enable_dynamic_spline      : ", config.enable_dynamic_spline       ))
+    sim_log(io, config.quiet_init, string("- enable_dynamic_input_map   : ", config.enable_dynamic_input_map    ))
+    sim_log(io, config.quiet_init, string("- enable_dynamic_input_shift : ", config.enable_dynamic_input_shift    ))
     sim_log(io, config.quiet_init, string("- enable_constraints         : ", config.enable_constraints          ))
     sim_log(io, config.quiet_init, string("- enable_inversion           : ", config.enable_inversion            ))
     sim_log(io, config.quiet_init, string("- enable_flattening          : ", config.enable_flattening           ))

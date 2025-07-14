@@ -90,12 +90,27 @@ function sim_init(config::SimConfig)
     end
     sim.num_inputs += 1
 
+    sim.adversarial_spline = SimSpline(sim.config, sim.rng, rand(sim.rng, config.min_adversarial_knots:config.max_adversarial_knots))
+    if config.save_debug_figs
+        sim_plot_adversarial_spline(sim.adversarial_spline, "Adversarial Offset Basic Spline", debug_folder, string("out_adversarial_fun.png"))
+    end
+
+    sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Input Mapping"))
+    sim.input_map = collect(1:sim.num_inputs); # basline
+    if sim.config.enable_input_map
+        sim.input_map = sortperm(rand(sim.rng, sim.num_inputs)) # random permutation
+    end
+    println("- ", sim.input_map)
+    sim.next_dyn_input_remap = rand(sim.rng, sim.config.dyn_input_map_freq_min:sim.config.dyn_input_map_freq_max)
+    sim.next_dyn_input_shift = rand(sim.rng, sim.config.dyn_input_shift_freq_min:sim.config.dyn_input_shift_freq_max)
+    
 
     # feature seeds
     flat_rng = Xoshiro(rand(sim.rng, 1:100000))
     invert_rng = Xoshiro(rand(sim.rng, 1:100000))
     fault_rng = Xoshiro(rand(sim.rng, 1:100000))
     couple_rng = Xoshiro(rand(sim.rng, 1:100000))
+    offset_rng = Xoshiro(rand(sim.rng, 1:100000))
 
     if config.enable_flattening
         sim_log(sim.io, sim.config.quiet_init, string("...\nCreating Flattening"))        
@@ -194,6 +209,12 @@ function sim_init(config::SimConfig)
             end
         end
     end
+
+    # initialize input offsets
+    sim.offset_inputs      = (rand(offset_rng, sim.num_inputs) .- 0.5) .* 2.0
+    sim.offset_adversarial = ((rand(offset_rng, sim.num_inputs) .- 0.5) .* 2.0) .* sim.config.adversarial_offset_mag
+
+
 
     sim_log(sim.io, sim.config.quiet_init, string("..."))
     sim_log_fence(sim.io, sim.config.quiet_init)

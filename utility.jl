@@ -14,6 +14,13 @@ function sim_log_fence(io::IOStream, quiet::Bool)
 end
 
 
+# return the fractional component only
+function sim_fract(x_in::Float64)
+    x = abs(x_in)
+    return x - floor(x)
+end
+
+
 function sim_plot_spline(spline::SimSpline, xlbl::String, ylbl::String, ttle::String, folder::String, filename::String)
     # return
     inp = []
@@ -36,13 +43,40 @@ function sim_plot_spline(spline::SimSpline, xlbl::String, ylbl::String, ttle::St
 end
 
 
+function sim_plot_adversarial_spline(spline::SimSpline, ttle::String, folder::String, filename::String)
+    # return
+    inp = []
+    resp = []    
+    resp_z = []
+    for i in 0:1000
+        x = i/1000
+        y = spline_eval(spline, x)
+        z = x * (1.0 + (y - 0.5) * 0.5)
+        push!(resp, y)
+        push!(resp_z, z)
+        push!(inp, x)
+    end
+
+    mkpath(folder)
+
+    h = plot(inp, inp, label="Rolling Fitness", line=:dash)
+    plot!(inp, resp, label="Adversarial Spline", line=:dot)
+    plot!(inp, resp_z, label="Spline Weighted by Rolling Fitness")
+    xlabel!("Rolling Fitness")
+    ylabel!("Offset Factor")
+    title!(ttle)
+    println("Saving Plot: ", filename)
+    savefig(h, string(folder, "/", filename))
+end
+
+
 function sim_plot_model(mdl::SimModel, ttle::String, folder::String, filename::String)
     # return
     inp = []
     resp = []    
     for i in 0:1000
         x = i/1000
-        y, u = model_query(mdl, x)
+        y, u = model_query(mdl, x, 0)
         push!(resp, y)
         push!(inp, x)
     end
@@ -65,7 +99,7 @@ function sim_plot_model_flat(mdl::SimModel, flat::SimFlatten, ttle::String, fold
     resp_flat = []
     for i in 0:1000
         x = i/1000
-        y, u = model_query(mdl, x)
+        y, u = model_query(mdl, x, 0)
         push!(resp, y)
         if x > flat.x0 && x < flat.x1 && y > flat.y0 && y < flat.y1
             y = flat.override
@@ -94,7 +128,7 @@ function sim_plot_model_invert(mdl::SimModel, invert::SimInvert, ttle::String, f
     resp_invert = []
     for i in 0:1000
         x = i/1000
-        y, u = model_query(mdl, x)
+        y, u = model_query(mdl, x, 0)
         push!(resp, y)
         if x > invert.x0 && x < invert.x1 && y > invert.y0 && y < invert.y1
             y = invert.y0 + invert.y1 - y
@@ -123,7 +157,7 @@ function sim_plot_model_fault(mdl::SimModel, fault::SimFault, ttle::String, fold
     resp_invert = []
     for i in 0:1000
         x = i/1000
-        y, u = model_query(mdl, x)
+        y, u = model_query(mdl, x, 0)
         push!(resp, y)
         if y < fault.threshold
             y = y * fault.factor

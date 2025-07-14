@@ -6,8 +6,6 @@ mutable struct SimModel
     flat            :: SimFlatten
     invert          :: SimInvert
     scale_factor    :: Float64
-    inp_offset      :: Float64
-    gen_offset      :: Float64
     inp_velocity    :: Float64
     gen_velocity    :: Float64
     #
@@ -22,20 +20,17 @@ mutable struct SimModel
         ret.scale_factor = rand(rng) * 0.95 + 0.05
         ret.inp_velocity = (rand(rng) - 0.5) * 2 * config.dyn_model_inp_vel_mag / 1000.0
         ret.gen_velocity = (rand(rng) - 0.5) * 2 * config.dyn_model_gen_vel_mag / 1000.0
-        ret.inp_offset = rand(rng)
-        ret.gen_offset = rand(rng)
         return ret
     end
 end
 
+
 function model_query(mdl::SimModel, x_in::Float64, iter::Int)
 
-    x = x_in + mdl.inp_offset + mdl.inp_velocity * iter
-    x -= floor(x)
+    x = sim_fract(x_in + mdl.inp_velocity * iter) # wrap [0,1)
     
     u = spline_eval(mdl.gen_spline, x)
-    u += mdl.gen_offset + mdl.gen_velocity * iter
-    u -= floor(u)
+    u = sim_fract(u + mdl.gen_velocity * iter)    # wrap [0,1)
     
     y = spline_eval(mdl.mdl_spline, u)
 
