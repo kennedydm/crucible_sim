@@ -3,14 +3,17 @@
 mutable struct SimFault
     threshold   :: Float64
     id          :: Int
+    factor      :: Float64
     enabled     :: Bool
     #
-    function SimFault(id::Int, thresh::Float64)
+    function SimFault(id::Int, thresh::Float64, factor::Float64)
         ret = new()
         ret.enabled = 0 != id
         ret.id = 0
+        ret.factor = 0.0
         if ret.enabled
             ret.id = id
+            ret.factor = factor
         end
         ret.threshold = thresh
         return ret

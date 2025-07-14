@@ -8,8 +8,14 @@ function sim_log(io::IOStream, quiet::Bool, text::String)
 end
 
 
+function sim_log_fence(io::IOStream, quiet::Bool)
+    fence = "==============================================================================="
+    sim_log(io, quiet, fence)
+end
+
+
 function sim_plot_spline(spline::SimSpline, xlbl::String, ylbl::String, ttle::String, folder::String, filename::String)
-    return
+    # return
     inp = []
     resp = []    
     for i in 0:1000
@@ -31,7 +37,7 @@ end
 
 
 function sim_plot_model(mdl::SimModel, ttle::String, folder::String, filename::String)
-    return
+    # return
     inp = []
     resp = []    
     for i in 0:1000
@@ -53,7 +59,7 @@ end
 
 
 function sim_plot_model_flat(mdl::SimModel, flat::SimFlatten, ttle::String, folder::String, filename::String)
-    return
+    # return
     inp = []
     resp = []    
     resp_flat = []
@@ -82,7 +88,7 @@ end
 
 
 function sim_plot_model_invert(mdl::SimModel, invert::SimInvert, ttle::String, folder::String, filename::String)
-    return
+    # return
     inp = []
     resp = []    
     resp_invert = []
@@ -111,7 +117,7 @@ end
 
 
 function sim_plot_model_fault(mdl::SimModel, fault::SimFault, ttle::String, folder::String, filename::String)
-    return
+    # return
     inp = []
     resp = []    
     resp_invert = []
@@ -120,7 +126,7 @@ function sim_plot_model_fault(mdl::SimModel, fault::SimFault, ttle::String, fold
         y, u = model_query(mdl, x)
         push!(resp, y)
         if y < fault.threshold
-            y = 0
+            y = y * fault.factor
         end
         push!(resp_invert, y)
         push!(inp, x)
@@ -145,6 +151,7 @@ function sim_plot_heatmap(x, y, z, xlbl::String, ylbl::String, ttle::String, fol
     xlabel!(xlbl)
     ylabel!(ylbl)
     title!(ttle)
+    zlims!(0.0, 1.0)
     println("Saving Plot: ", filename)
     savefig(h, string(folder, "/", filename))
 end

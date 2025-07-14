@@ -4,8 +4,25 @@ function sim_eval(sim::SimStruct, x_in)
 
     sim.num_iterations += 1;
 
+    verbose = false
+    # verbose = true
+
     noise_seed :: Int = sim.config.noise_seed + sim.num_iterations
     rng_noise = Xoshiro(noise_seed % 1000000)
+
+
+    #--------------------------------------------------------------------------
+    # check for random infeasibility
+    if sim.config.enable_faults && rand(rng_noise) < sim.config.random_infeasible_rate
+        return NaN
+    end
+
+    # check for random fault
+    if sim.config.enable_faults && rand(rng_noise) < sim.config.random_fault_rate
+        return 0.0
+    end
+    #--------------------------------------------------------------------------
+
 
     x = copy(x_in)
     input_noise_sigma = sim.config.input_noise_sigma
@@ -14,99 +31,193 @@ function sim_eval(sim::SimStruct, x_in)
             x[i] = clamp(x[i] + randn(rng_noise) * input_noise_sigma, 0, 1)
         end
     end
-
     
     tot_scale_x = x[sim.num_inputs]
     
     ret :: Float64 = 0.0
+    constraint = 1.0
 
-    models = sim.models
-    if sim.config.enable_faults
-        faults = sim.faults
-    end
-
-    u = zeros(length(models))
-    mx = 0.0
-
+    
+    # for each composition function
+    #--------------------------------------------------------------------------
     for k in 1:length(sim.comps)
         comp = sim.comps[k]
         comp_scale_x = x[sim.num_inputs - k]
         
-        y::Float64 = 0.0
+        # composition function aggregate fitness
+        y = 0.0
+        sum_scale_factors = 0.0
 
-        for i in 1:comp.num_models
+        visited = fill(false, length(sim.models))
 
-            mdl = comp.model_map[i]
-            z, u[mdl] = model_query(models[mdl], x[mdl])
-            sim.num_function_evals += 2
-
-            if sim.config.enable_constraints
-                z /= models[mdl].max_constrained
+        for pair in 1:length(comp.coupling)
+            lhs = comp.coupling[pair].lhs
+            rhs = comp.coupling[pair].rhs
+            visited[lhs] = true
+            visited[rhs] = true
+            if verbose
+                println("visited: ", lhs)
+                println("visited: ", rhs)
             end
 
-            if sim.config.enable_model_noise
-                z = abs(z + randn(rng_noise) * sim.config.model_noise_sigma)
+            design_x = x[lhs]
+            design_y = x[rhs]
+
+            # determine input skew
+            #------------------------------------------------------------------
+            if sim.config.enable_skewing
+                # apply input skewing with wrapping
+                temp_x = design_x + (design_y - 0.5) * comp.coupling[pair].xskew
+                if temp_x < 0
+                    temp_x += 1
+                end
+                if temp_x > 1
+                    temp_x -= 1
+                end
+                
+                temp_y = design_y + (temp_x - 0.5) * comp.coupling[pair].yskew
+                if temp_y < 0
+                    temp_y += 1
+                end
+                if temp_y > 1
+                    temp_y -= 1
+                end
+                
+                design_x = temp_x
+                design_y = temp_y
             end
 
-            if sim.config.enable_faults && 0 != sim.num_fail_modes && faults[mdl].enabled && z < faults[mdl].threshold
+
+            # evaluate lhs
+            z0, u0, failed0 = model_eval(sim, lhs, design_x, rng_noise)
+            
+            # evaluate rhs
+            z1, u1, failed1 = model_eval(sim, rhs, design_y, rng_noise)
+            
+            # check for executive failure
+            if failed0 || failed1
+                if verbose
+                    println("Executive Failure")
+                end
                 return 0.0
-                # faulted = true
-                # break
             end
 
-            y = y + z * comp.scale_factors[i]
-            if isnan(y)
-                println("Error, NaN calculating comp: ", k, ", model: ", mdl, ", z: ", z, ", sf: ", comp.scale_factors[i])
-                return NaN
+            # add to response
+            y += z0 + z1
+            
+            # check for feasibility
+            if sim.config.enable_constraints
+                constraint *= constraint_eval(comp.coupling[pair], u0, u1)
+                sim.num_function_evals += 1
             end
-
         end
 
+
+        # repeat for non-visited models
+        #--------------------------------------------------------------------------
+        for i in 1:comp.num_models
+            mdl = comp.model_map[i]
+            sum_scale_factors += sim.models[mdl].scale_factor
+    
+            if visited[mdl]
+                continue
+            end
+            visited[mdl] = true
+            
+            if verbose
+                println("visited: ", mdl)
+            end
+
+            # evaluate model
+            z, u, failed = model_eval(sim, mdl, x[mdl], rng_noise)
+
+            # check for executive failure
+            if failed
+                if verbose
+                    println("Executive Failure")
+                end
+                return 0.0
+            end
+
+            # add to response
+            y += z
+            
+        end
+
+        # normalize y to sum of scale factors
+        y /= sum_scale_factors
+
+
+        # apply comp scale factor
         if sim.config.enable_comp_scale_inputs
             y *= spline_eval(comp.scale_spline, comp_scale_x)
             sim.num_function_evals += 1
         end
 
+
+        # apply comp iso-optimal inversion
         if sim.config.enable_iso_optimal
-            if y > comp.iso_optimal_limit
-                y = 2 * comp.iso_optimal_limit - y
+            y /= comp.iso_optimal_limit
+            if y > 1.0
+                y = 2.0 - y
             end
-            mx += comp.iso_optimal_limit
-        else
-            mx += comp.sum_scale_factors
         end
 
-        # check constraints
-        constraint = 1.0
-        if sim.config.enable_constraints
-            for i in 1:length(comp.constraints)
-                lhs = comp.constraints[i].lhs_dimension
-                rhs = comp.constraints[i].rhs_dimension
-                constraint *= constraint_eval(comp.constraints[i], u[lhs], u[rhs])
-                sim.num_function_evals += 1
-                if isnan(constraint)
-                    # sim_log(sim.config.quiet_init, string("comp: ", k, " failed constraint: ", i, ", lhs: ", lhs, ", rhs: ", rhs, ", x[",lhs,"]: ", x[lhs], ", x[",rhs,"]: ", x[rhs], ", u[",lhs,"]: ", u[lhs], ", u[",rhs,"]: ", u[rhs])
-                    # sim_log(sim.config.quiet_init, string("comp model map: ", comp.model_map)
-                    break
-                end
-            end
+
+        # return NaN if infeasible
+        if sim.config.enable_constraints && y < 1 - sim.config.constraint_optimal_margin && isnan(constraint)
+            return NaN
         end
         
-        ret += y * constraint
+
+        # add to fitness response
+        ret += y
 
     end
 
+    
+    # scale total output
     if sim.config.enable_total_scale_input
         ret *= spline_eval(sim.scale_spline, tot_scale_x)
         sim.num_function_evals += 1
     end
-    ret = ret / mx
+    
+    
+    
+    # apply global iso-optimal
 
-    if !isnan(ret)
-        if sim.config.enable_faults && rand(rng_noise) < sim.config.random_fault_rate
-            return ret *= 0.0
+    
+    # clamp response before returning
+    ret = clamp(ret, 0, 1)
+
+    return ret
+end
+
+
+function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xoshiro)
+
+    # model response
+    z, u = model_query(sim.models[mdl], design_x)
+    sim.num_function_evals += 2
+
+    # apply faults
+    if sim.config.enable_faults && 0 != sim.num_fail_modes && sim.faults[mdl].enabled && z < sim.faults[mdl].threshold
+        factor = sim.faults[mdl].factor
+        if factor < 0.01
+            return 0.0, 0.0, true
+        else
+            z *= factor
         end
     end
 
-    return ret
+    # model level scaling
+    z *= sim.models[mdl].scale_factor
+
+    # - model output noise
+    if sim.config.enable_model_noise
+        z = abs(z + randn(rng_noise) * sim.config.model_noise_sigma)
+    end
+
+    return z, u, false
+
 end
