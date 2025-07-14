@@ -197,7 +197,7 @@ function sim_init(config::SimConfig)
 
     sim_log(sim.io, sim.config.quiet_init, string("..."))
     sim_log_fence(sim.io, sim.config.quiet_init)
-    sim_log(sim.io, sim.config.quiet_init, string("Sim Initialization Complete"))
+    sim_log(sim.io, sim.config.quiet_init, string("Sim Initialization Complete - Number of Design Inputs: ", sim.num_inputs))
     sim_log_fence(sim.io, sim.config.quiet_init)
 
     close(sim.io)

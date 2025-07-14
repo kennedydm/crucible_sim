@@ -11,6 +11,7 @@ mutable struct SimConfig
     #
     input_noise_sigma           :: Float64
     model_noise_sigma           :: Float64
+    fidelity_power              :: Float64
     inversion_rate              :: Float64
     flattening_rate             :: Float64
     random_fault_rate           :: Float64
@@ -27,8 +28,13 @@ mutable struct SimConfig
     max_skew_magnitude          :: Float64
     knot_feedback               :: Float64
     #
+    dyn_model_inp_vel_mag       :: Float64
+    dyn_model_gen_vel_mag       :: Float64
+    #
     enable_input_noise          :: Bool
     enable_model_noise          :: Bool
+    enable_dynamic              :: Bool
+    enable_dynamic_spline       :: Bool
     enable_constraints          :: Bool
     enable_inversion            :: Bool
     enable_flattening           :: Bool
@@ -53,7 +59,8 @@ mutable struct SimConfig
         ret.num_nodes = 1
         #
         ret.input_noise_sigma = 0.003
-        ret.model_noise_sigma = 0.03
+        ret.model_noise_sigma = 0.01
+        ret.fidelity_power = 1.5
         ret.inversion_rate = 0.3
         ret.flattening_rate = 0.3
         ret.random_fault_rate = 0.02
@@ -69,9 +76,13 @@ mutable struct SimConfig
         ret.max_constraint_knots = 20
         ret.max_skew_magnitude = 0.3
         ret.knot_feedback = 0.5
+        ret.dyn_model_inp_vel_mag = 0.05 # per 1000 iterations
+        ret.dyn_model_gen_vel_mag = 0.05 # per 1000 iterations
         #
         ret.enable_input_noise = true
         ret.enable_model_noise = true
+        ret.enable_dynamic = true
+        ret.enable_dynamic_spline = true
         ret.enable_constraints = true
         ret.enable_flattening = true
         ret.enable_faults = true
@@ -100,9 +111,11 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     #
     sim_log(io, config.quiet_init, string("- input_noise_sigma          : ", config.input_noise_sigma           ))
     sim_log(io, config.quiet_init, string("- model_noise_sigma          : ", config.model_noise_sigma           ))
+    sim_log(io, config.quiet_init, string("- fidelity_power             : ", config.fidelity_power              ))
     sim_log(io, config.quiet_init, string("- inversion_rate             : ", config.inversion_rate              ))
     sim_log(io, config.quiet_init, string("- flattening_rate            : ", config.flattening_rate             ))
     sim_log(io, config.quiet_init, string("- random_fault_rate          : ", config.random_fault_rate           ))
+    sim_log(io, config.quiet_init, string("- random_infeasible_rate     : ", config.random_infeasible_rate      ))
     sim_log(io, config.quiet_init, string("- fault_degredation_rate     : ", config.fault_degredation_rate      ))
     sim_log(io, config.quiet_init, string("- constraint_input_margin    : ", config.constraint_input_margin     ))
     sim_log(io, config.quiet_init, string("- constraint_optimal_margin  : ", config.constraint_optimal_margin   ))
@@ -114,9 +127,13 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- max_constraint_knots       : ", config.max_constraint_knots        ))
     sim_log(io, config.quiet_init, string("- max_skew_magnitude         : ", config.max_skew_magnitude          ))
     sim_log(io, config.quiet_init, string("- knot_feedback              : ", config.knot_feedback               ))
+    sim_log(io, config.quiet_init, string("- dyn_model_inp_vel_mag      : ", config.dyn_model_inp_vel_mag       ))
+    sim_log(io, config.quiet_init, string("- dyn_model_gen_vel_mag      : ", config.dyn_model_gen_vel_mag       ))
     #   
     sim_log(io, config.quiet_init, string("- enable_input_noise         : ", config.enable_input_noise          ))
     sim_log(io, config.quiet_init, string("- enable_model_noise         : ", config.enable_model_noise          ))
+    sim_log(io, config.quiet_init, string("- enable_dynamic             : ", config.enable_dynamic              ))
+    sim_log(io, config.quiet_init, string("- enable_dynamic_spline      : ", config.enable_dynamic_spline       ))
     sim_log(io, config.quiet_init, string("- enable_constraints         : ", config.enable_constraints          ))
     sim_log(io, config.quiet_init, string("- enable_inversion           : ", config.enable_inversion            ))
     sim_log(io, config.quiet_init, string("- enable_flattening          : ", config.enable_flattening           ))

@@ -1,9 +1,9 @@
 
 # sim_eval: function that returns the simulation response for the given input values x
-function sim_eval(sim::SimStruct, x_in)
+function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fidelity_base::Int)
 
     sim.num_iterations += 1;
-
+    
     verbose = false
     # verbose = true
 
@@ -13,22 +13,32 @@ function sim_eval(sim::SimStruct, x_in)
 
     #--------------------------------------------------------------------------
     # check for random infeasibility
-    if sim.config.enable_faults && rand(rng_noise) < sim.config.random_infeasible_rate
-        return NaN
+    if sim.config.enable_faults
+        if rand(rng_noise) < sim.config.random_infeasible_rate
+            return NaN
+        end
     end
 
     # check for random fault
-    if sim.config.enable_faults && rand(rng_noise) < sim.config.random_fault_rate
-        return 0.0
+    if sim.config.enable_faults
+        if rand(rng_noise) < sim.config.random_fault_rate
+            return 0.0
+        end
     end
     #--------------------------------------------------------------------------
 
+
+    fidelity = fidelity_base
+    if fidelity < 1
+        fidelity = 1
+    end
+    fidelity = Int(round(Float64(fidelity) ^ sim.config.fidelity_power))
 
     x = copy(x_in)
     input_noise_sigma = sim.config.input_noise_sigma
     if sim.config.enable_input_noise
         for i in 1:sim.num_inputs
-            x[i] = clamp(x[i] + randn(rng_noise) * input_noise_sigma, 0, 1)
+            x[i] = clamp(x[i] + sum(randn(rng_noise, fidelity)) * input_noise_sigma / fidelity, 0, 1)
         end
     end
     
@@ -89,10 +99,10 @@ function sim_eval(sim::SimStruct, x_in)
 
 
             # evaluate lhs
-            z0, u0, failed0 = model_eval(sim, lhs, design_x, rng_noise)
+            z0, u0, failed0 = model_eval(sim, lhs, design_x, rng_noise, fidelity)
             
             # evaluate rhs
-            z1, u1, failed1 = model_eval(sim, rhs, design_y, rng_noise)
+            z1, u1, failed1 = model_eval(sim, rhs, design_y, rng_noise, fidelity)
             
             # check for executive failure
             if failed0 || failed1
@@ -129,7 +139,7 @@ function sim_eval(sim::SimStruct, x_in)
             end
 
             # evaluate model
-            z, u, failed = model_eval(sim, mdl, x[mdl], rng_noise)
+            z, u, failed = model_eval(sim, mdl, x[mdl], rng_noise, fidelity)
 
             # check for executive failure
             if failed
@@ -194,10 +204,15 @@ function sim_eval(sim::SimStruct, x_in)
 end
 
 
-function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xoshiro)
+function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xoshiro, fidelity::Int)
+
+    dyn_iter = 0
+    if sim.config.enable_dynamic && sim.config.enable_dynamic_spline
+        dyn_iter = sim.num_iterations
+    end
 
     # model response
-    z, u = model_query(sim.models[mdl], design_x)
+    z, u = model_query(sim.models[mdl], design_x, dyn_iter)
     sim.num_function_evals += 2
 
     # apply faults
@@ -215,7 +230,7 @@ function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xosh
 
     # - model output noise
     if sim.config.enable_model_noise
-        z = abs(z + randn(rng_noise) * sim.config.model_noise_sigma)
+        z = abs(z + sum(randn(rng_noise, fidelity)) * sim.config.model_noise_sigma / fidelity)
     end
 
     return z, u, false

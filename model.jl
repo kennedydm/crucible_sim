@@ -6,6 +6,10 @@ mutable struct SimModel
     flat            :: SimFlatten
     invert          :: SimInvert
     scale_factor    :: Float64
+    inp_offset      :: Float64
+    gen_offset      :: Float64
+    inp_velocity    :: Float64
+    gen_velocity    :: Float64
     #
     function SimModel(config::SimConfig, rng::Xoshiro)
         ret = new()
@@ -15,13 +19,24 @@ mutable struct SimModel
         ret.mdl_spline = SimSpline(config, rng, mdl_knots)
         ret.flat = SimFlatten(false, rng)
         ret.invert = SimInvert(false, rng)
-        ret.scale_factor = rand() * 0.95 + 0.05
+        ret.scale_factor = rand(rng) * 0.95 + 0.05
+        ret.inp_velocity = (rand(rng) - 0.5) * 2 * config.dyn_model_inp_vel_mag / 1000.0
+        ret.gen_velocity = (rand(rng) - 0.5) * 2 * config.dyn_model_gen_vel_mag / 1000.0
+        ret.inp_offset = rand(rng)
+        ret.gen_offset = rand(rng)
         return ret
     end
 end
 
-function model_query(mdl::SimModel, x::Float64)
+function model_query(mdl::SimModel, x_in::Float64, iter::Int)
+
+    x = x_in + mdl.inp_offset + mdl.inp_velocity * iter
+    x -= floor(x)
+    
     u = spline_eval(mdl.gen_spline, x)
+    u += mdl.gen_offset + mdl.gen_velocity * iter
+    u -= floor(u)
+    
     y = spline_eval(mdl.mdl_spline, u)
 
     if mdl.flat.enabled
