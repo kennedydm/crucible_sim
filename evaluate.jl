@@ -103,6 +103,19 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
 
 
     #--------------------------------------------------------------------------
+    # check for random wrong answer
+    if sim.config.enable_random_fitness
+        random_fitness_factor = 1.0
+        if sim.config.enable_adversarial_incorrect
+            random_fitness_factor *= (1 + sim.config.adversarial_incorrect_factor * sim.runtime_adv_factor)
+        end
+        if rand(rng_noise) < sim.config.random_fitness_rate * random_fitness_factor
+            ret = rand(rng_noise)
+            update_adversarial_fitness(sim, ret)
+            return ret
+        end
+    end
+
     # check for random infeasibility
     if sim.config.enable_faults
         if rand(rng_noise) < sim.config.random_infeasible_rate * adv_failure_factor

@@ -100,7 +100,7 @@ function sim_init(config::SimConfig)
     if sim.config.enable_input_map
         sim.input_map = sortperm(rand(sim.rng, sim.num_inputs)) # random permutation
     end
-    println("- ", sim.input_map)
+    sim_log(sim.io, sim.config.quiet_init, string("- ", sim.input_map))
     sim.next_dyn_input_remap = rand(sim.rng, sim.config.dyn_input_map_freq_min:sim.config.dyn_input_map_freq_max)
     sim.next_dyn_input_shift = rand(sim.rng, sim.config.dyn_input_shift_freq_min:sim.config.dyn_input_shift_freq_max)
     

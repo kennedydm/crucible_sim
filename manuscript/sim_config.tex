@@ -1,0 +1,83 @@
+\begin{longtable}{| p{0.3\linewidth} | C{0.15\linewidth} | p{0.45\linewidth} | }
+
+\caption{Simulation Configuration Parameters.}\\
+
+\hline
+\textbf{Parameter} & \textbf{Default} & \textbf{Description} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{Parameter} & \textbf{Default} & \textbf{Description} \\ \hline
+\endhead
+
+\label{tbl:sim-config}
+% & & \\
+\cellcolor{lightgray} \textbf{Scenario Options} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
+structure\_seed & 0 & \\ \hline
+noise\_seed & 0 & \\ \hline
+num\_dimensions & 1 & \\ \hline
+num\_nodes & 1 & \\ \hline
+& & \\
+\cellcolor{lightgray} \textbf{Feature Parameters} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
+input\_noise\_sigma & 0.003 & \\ \hline
+model\_noise\_sigma & 0.01 & \\ \hline
+fidelity\_power & 1.5 & \\ \hline
+inversion\_rate & 0.3 & \\ \hline
+flattening\_rate & 0.3 & \\ \hline
+random\_fault\_rate & 0.02 & \\ \hline
+random\_infeasible\_rate & 0.02 & \\ \hline
+random\_fitness\_rate & 0.02 & \\ \hline
+fault\_degredation\_rate & 0.5 & \\ \hline
+constraint\_input\_margin & 0.05 & \\ \hline
+constraint\_optimal\_margin & 0.05 & \\ \hline
+min\_knots & 10 & \\ \hline
+max\_knots & 20 & \\ \hline
+min\_scale\_knots & 5 & \\ \hline
+max\_scale\_knots & 10 & \\ \hline
+min\_constraint\_knots & 10 & \\ \hline
+max\_constraint\_knots & 20 & \\ \hline
+max\_skew\_magnitude & 0.3 & \\ \hline
+knot\_feedback & 0.5 & \\ \hline
+adversarial\_offset\_mag & 0.1 & \\ \hline
+adversarial\_noise\_factor & 0.5 & \\ \hline
+adversarial\_failure\_factor & 0.5 & \\ \hline
+adversarial\_incorrect\_factor & 0.5 & \\ \hline
+adversarial\_feedback & 0.9 & \\ \hline
+min\_adversarial\_knots & 5 & \\ \hline
+max\_adversarial\_knots & 10 & \\ \hline
+dyn\_model\_inp\_vel\_mag & 0.05 & \\ \hline
+dyn\_model\_gen\_vel\_mag & 0.05 & \\ \hline
+dyn\_input\_map\_freq\_min & 1500 & \\ \hline
+dyn\_input\_map\_freq\_max & 2500 & \\ \hline
+dyn\_input\_shift\_freq\_min & 800 & \\ \hline
+dyn\_input\_shift\_freq\_max & 1200 & \\ \hline
+dyn\_input\_shift\_mag & 0.1 & \\ \hline
+& & \\
+\cellcolor{lightgray} \textbf{Feature Enablement} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
+enable\_input\_map & TRUE & \\ \hline
+enable\_input\_shift & TRUE & \\ \hline
+enable\_input\_noise & TRUE & \\ \hline
+enable\_model\_noise & TRUE & \\ \hline
+enable\_adversarial & TRUE & \\ \hline
+enable\_adversarial\_noise & TRUE & \\ \hline
+enable\_adversarial\_offset & TRUE & \\ \hline
+enable\_adversarial\_failure & TRUE & \\ \hline
+enable\_adversarial\_incorrect & TRUE & \\ \hline
+enable\_dynamic & TRUE & \\ \hline
+enable\_dynamic\_spline & TRUE & \\ \hline
+enable\_dynamic\_input\_map & TRUE & \\ \hline
+enable\_dynamic\_input\_shift & TRUE & \\ \hline
+enable\_constraints & TRUE & \\ \hline
+enable\_inversion & TRUE & \\ \hline
+enable\_flattening & TRUE & \\ \hline
+enable\_faults & TRUE & \\ \hline
+enable\_iso\_optimal & TRUE & \\ \hline
+enable\_skewing & TRUE & \\ \hline
+enable\_comp\_scale\_inputs & TRUE & \\ \hline
+enable\_total\_scale\_input & TRUE & \\ \hline
+enable\_random\_fitness & TRUE & \\ \hline
+quiet\_init & FALSE & \\ \hline
+save\_debug\_figs & FALSE & \\ \hline
+
+
+\end{longtable}

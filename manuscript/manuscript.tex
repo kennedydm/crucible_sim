@@ -22,6 +22,7 @@
 \begin{document}
 	\maketitle
 
+
 	\begin{abstract}
 \colorbox{yellow}{Add Abstract}
 %A state of the art test case is needed that extends upon existing published optimization test cases to better reflect the difficulty in holistically optimizing multi-objective systems of systems under deep uncertainty. This paper proposes a crucible, or arduous test case, to provide a challenging and scalable test simulation for comparing the performance and efficiency between optimization algorithms that can and cannot simultaneously learn and leverage the nature of the system during optimization.
@@ -138,10 +139,9 @@ In light of these limitations, this work aims to combine proven benchmarking str
 
 \subsection{Crucible Simulation Requirements}
 
-This section describes the derivation of requirements for the crucible simulation.
+This section describes the derivation of requirements for the Crucible simulation.
 
 \colorbox{yellow}{introduction sentence.}
-
 
 Table: \ref{tbl:sim-reqs}
 
@@ -149,13 +149,16 @@ Table: \ref{tbl:sim-reqs}
 
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
-\include{req_table.tex}
+
+\input{req_table.tex}
 
 \endgroup
 
 \section{Simulation Architecture}
 
 The Crucible simulation is written in the Julia \colorbox{yellow}{[REF]} programming language to provide compiled performance with repeatable environments (Req. 1, 3).
+
+Simulation configuration is performed by creating a configuration object using the SimConfig() function. This object is used to enable simulation features and set feature parameters (Req. 9, 10). A comprehensive list of configuration parameters is provided in Appendix \ref{appdx}.
 
 Scenario level randomization is controlled by seeding an Xoshiro random number stream from the Random package using the scenario seed configuration parameter (Req. 3, 48). This stream is used for constructing the simulation prior to execution (Req. 2).
 
@@ -173,8 +176,6 @@ During simulation construction a log of the scenario features and configuration 
 
 The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: $y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand()$. The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
 
-\colorbox{yellow}{add table for sim configuration parameters}
-
 \section{Simulation Features}
 
 \subsection{Governing Functions and Model Functions}
@@ -187,45 +188,56 @@ Flattening may occur when a governing or model function is clamped in the range 
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{basic_eq_mdl_1_gov_fun.png}
-	\caption{Governing function created using a spline basic function.}
-	\label{fig:basic_eq_mdl_1_gov_fun}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_gov_fun.png}
+        \caption{Governing function created using a spline basic function.}
+        \label{fig:basic_eq_mdl_1_gov_fun}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_mdl_fun.png}
+        \caption{Model function created using a spline basic function.}
+        \label{fig:basic_eq_mdl_1_mdl_fun}
+    \end{minipage}
 \end{figure}
+
+
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{basic_eq_mdl_1_mdl_fun.png}
-	\caption{Model function created using a spline basic function.}
-	\label{fig:basic_eq_mdl_1_mdl_fun}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_mdl_resp.png}
+        \caption{Model response landscape created by mapping design variable input to model function input through a governing function.}
+        \label{fig:basic_eq_mdl_1_mdl_resp}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{landscape_mdl_19_mdl_resp.png}
+        \caption{Example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, non-linear, and deceptive basins.}
+        \label{fig:landscape_mdl_19_mdl_resp}
+    \end{minipage}
 \end{figure}
+
+
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{basic_eq_mdl_1_mdl_resp.png}
-	\caption{Model response landscape created by mapping design variable input to model function input through a governing function.}
-	\label{fig:basic_eq_mdl_1_mdl_resp}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{flat_mdl_1_mdl_resp_flat.png}
+        \caption{Example random flattening injected using the enable\_flattening configuration parameter.}
+        \label{fig:flat_mdl_1_mdl_resp_flat}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{invert_mdl_1_mdl_resp_invert.png}
+        \caption{Example random discontinuity injected using the enable\_inversion configuration parameter.}
+        \label{fig:invert_mdl_1_mdl_resp_invert}
+    \end{minipage}
 \end{figure}
 
-\begin{figure}
-	\centering
-	\includegraphics[width=0.6\textwidth]{landscape_mdl_19_mdl_resp.png}
-	\caption{Example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, non-linear, and deceptive basins.}
-	\label{fig:landscape_mdl_19_mdl_resp}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[width=0.6\textwidth]{flat_mdl_1_mdl_resp_flat.png}
-	\caption{Example random flattening injected using the enable\_flattening configuration parameter.}
-	\label{fig:flat_mdl_1_mdl_resp_flat}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[width=0.6\textwidth]{invert_mdl_1_mdl_resp_invert.png}
-	\caption{Example random discontinuity injected using the enable\_inversion configuration parameter.}
-	\label{fig:invert_mdl_1_mdl_resp_invert}
-\end{figure}
 
 \subsection{Composition Functions}
 
@@ -235,19 +247,24 @@ For each composition function, an additional input dimension is created for a sc
 
 Figure \ref{fig:2d_const_3_1_base} illustrates an example composition lanscape of the sum of two models. Many optimal locations at 1.0 are present to support niching optimization methods (Req. 18). An iso-optimal surface is created by scaling the composition response and inverting any portion that exceeds a value of 1.0. Figure \ref{fig:2d_const_3_1_iso} illustrates an iso-optimal surface that provides many disconnected iso-optimal regions (Req. 44) further facilitating niching optimization methods (Req. 18). Iso-optimal surfaces are scaled with the number of composition functions (Req. 45) with an additional global iso-optimal surface created for the overall node response (Req. 43).
 
-\begin{figure}
-	\centering
-	\includegraphics[width=0.6\textwidth]{2d_const_3_1_base.png}
-	\caption{Example composition function response of two models.}
-	\label{fig:2d_const_3_1_base}
-\end{figure}
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{2d_const_3_1_iso.png}
-	\caption{Composition function response with added iso-optimal surface feature.}
-	\label{fig:2d_const_3_1_iso}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{2d_const_3_1_base.png}
+        \caption{Example composition function response of two models.}
+        \label{fig:2d_const_3_1_base}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso.png}
+        \caption{Composition function response with added iso-optimal surface feature.}
+        \label{fig:2d_const_3_1_iso}
+    \end{minipage}
 \end{figure}
+
+
 
 \subsection{Skewing and Constraints}
 
@@ -255,54 +272,237 @@ During the creation of composition functions, pairs of dimensions are randomly c
 
 Feasibility constraints are created on coupled composition pairs using a constraint function. The constraint function is created using the spline basic function generator (Req. 32). One of the pair input values is selected as the constraint function input. Feasibily is determine by checking if the other pair input value is above or below (chosen at random for the constraint) of the spline response. The couple pair input values are transformed using their respective governing functions prior to evaluating the constraint function creating a varied feasibility landscape (Req. 33). Figure \ref{fig:2d_const_3_1_iso_skew_const} builds on the previous skewing example with additional infeasibility regions shown in white (Req. 34). Constraints are applied to pairs of inputs resulting in separable and non-separable constraints when more than one constraint is present (Req. 35).
 
-A couple margins are included to prevent a scenario in which there are no feasible optimal solutions. The first is an input margin controlled via the constraint\_input\_margin configuration parameter that requires the input variable enter the infeasible region by at least that amount before infeasibility is declared. The second margin is a small margin around optimal locations controlled via the constraint\_optimal\_margin configuration parameter. This margin results in small islands of optimal feasible solutions in Figure \ref{fig:2d_const_3_1_iso_skew_const}.
+A couple margins are included to prevent a scenario in which there are no feasible optimal solutions. The first is an input margin controlled via the constraint\_input\_margin configuration parameter that requires the input variable enter the infeasible region by at least that amount before infeasibility is declared. The second margin is a small margin around optimal locations controlled via the constraint\_optimal\_margin configuration parameter. This margin results in small islands of optimal feasible solutions in Figure \ref{fig:2d_const_3_1_iso_skew_const}. A three-dimensional example is provided in Figure \ref{fig:compo_iso_3d}.
+
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{2d_const_3_1_iso_skew.png}
-	\caption{Composition function response with added wrapped skewing feature to create non-separability and non-axis alignment.}
-	\label{fig:2d_const_3_1_iso_skew}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso_skew.png}
+        \caption{Composition function response with added wrapped skewing feature to create non-separability and non-axis alignment.}
+        \label{fig:2d_const_3_1_iso_skew}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso_skew_const.png}
+        \caption{Composition function response with added feasibility constraint feature.}
+        \label{fig:2d_const_3_1_iso_skew_const}
+    \end{minipage}
 \end{figure}
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{2d_const_3_1_iso_skew_const.png}
-	\caption{Composition function response with added feasibility constraint feature.}
-	\label{fig:2d_const_3_1_iso_skew_const}
+    \includegraphics[width=0.6\textwidth]{compo_iso_3d.png}
+    \caption{An example iso-optimal surface for a 3-Dimensional composition function with skewing and constraint features.}
+    \label{fig:compo_iso_3d}
 \end{figure}
+
+
+\subsection{Dynamic Features}
+
+The simulation provides features for dynamically changing the scenario structure as a function of optimization iterations with the enable\_dynamic configuration option. During each call to sim\_eval(), the num\_iterations counter increments which affects continuous changes and discrete events. Continuous changes are created by through the use of a velocity parameter for each input dimension and generating function response (Fig. \ref{fig:test_dyn_model}). For a constant input value, each simulation iteration will cause the composition function and constraint landscapes to slowly change (Req. 57, 58). This feature is controlled using the enable\_dynamic\_spline, dyn\_model\_inp\_vel\_mag, and dyn\_model\_gen\_vel\_mag configuration parameters.
+
+Multiple dynamic discrete events features are available (Req. 55). Each design input is assigned a random offset during scenario creation using the enable\_input\_shift option. If dynamic features are enabled, the enable\_dynamic\_input\_shift option will result in periodic jump shifts for each input offset. The magnitude and frequency of the shifts are controlled via the dyn\_input\_shift\_mag, input\_shift\_freq\_min, and dyn\_input\_shift\_freq\_max feature respectively. When the number of iterations reaches a randomly selected threshold between the min and max frequency (Req. 52) all inputs will be offset simultaneously resulting in a new bias in the design inputs. This will result in dynamic jumps in the composition function and constraint landscapes (Req. 59). Figure \ref{fig:test_dyn_input_shift} shows three input shifting events (indicated by black circles) across four-thousand simulation evaluations sweeping across a design input from zero to one.
+
+Each design input is mapped to simulation models using a mapping vector, enabled using the enable\_input\_map option (Req. 52). If dynamic features are enabled as well as the enable\_dynamic\_input\_map option, then the mapping of design variables to models will randomly mutate at discrete events (Req. 59). Mutations occur between random pairs of inputs at a random simulation iteration chosen between the frequency ranges defined in the dyn\_input\_map\_freq\_min and dyn\_input\_map\_freq\_max configuration parameters. Figure \ref{fig:test_dyn_map} illustrates a dynamic input mapping change event at the 1000th simulation iteration while sweeping the input dimension from zero to one over two-thousand evaluations. Figure \ref{fig:test_dyn_map_spline} shows an example response of the combination of the continuous input velocity feature and the discrete input mapping change event.
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_dyn_model.png}
+    \caption{Example model response showing continuous dynamic spline landscape change as a function of simulation iterations.}
+    \label{fig:test_dyn_model}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_dyn_input_shift.png}
+    \caption{Example model response with discrete dynamic input shift biasing events as a function of simulation iterations.}
+    \label{fig:test_dyn_input_shift}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_dyn_map.png}
+    \caption{Example model response with discrete design input re-mapping event as a function of simulation iterations.}
+    \label{fig:test_dyn_map}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_dyn_map_spline.png}
+    \caption{Example model response that combines a discrete input re-mapping event with continuous dynamic spline landscape changes as a function of simulation iterations.}
+    \label{fig:test_dyn_map_spline}
+    \end{minipage}
+\end{figure}
+
 
 
 \subsection{Stochastic Features}
 
+The simulation provides a variety of stochastic features to challenge optimizers.
+Noise can be added to the design input values to create uncertainty into the generating functions (Req. 26). This is controlled via the enable\_input\_noise and input\_noise\_sigma configuration parameters. Because the uncertainty is created at the generating function inputs this results in uncertainty at constraint boundaries (Req. 51). Additionally, noise can be added to the model response outputs using the enable\_model\_noise and model\_noise\_sigma configuration parameters (Req. 47). Figures \ref{fig:comp2d_input_noise} and \ref{fig:comp2d_model_noise} illustrate these respective features.
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{comp2d_input_noise.png}
+        \caption{Stochastic composition function response created by noise added to input dimensions.}
+        \label{fig:comp2d_input_noise}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{comp2d_model_noise.png}
+        \caption{Stochastic composition function response created by noise added to model responses.}
+        \label{fig:comp2d_model_noise}
+    \end{minipage}
+\end{figure}
+
+
+
+\subsection{Variable Model Fidelity}
+
+When evaluating simulation fitness, the optimer must include an integer parameter for model fidelity (Req. 17). This allows replicates to be performed when determining input and response uncertainty during simulation evaluation. The number of replicates is determined by raising the fidelity value to the power specified in the fidelity\_power configuration parameter, rounded to the nearest integer above zero. Figure \ref{fig:test_fidelity_var_1} provides an example in which a single design input value is provided while raising the fidelity input from one to ten across one-thousand simulation evaluations showing a convergence in fitness response. Figure \ref{fig:test_fidelity_var_2} illustrates this effect while sweeping the design input from zero to one while raising the fidelity from one to ten across one-thousand simulation evaluations.
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_fidelity_var_1.png}
+        \caption{Demonstration of model fitness convergence by increasing model fidelity from one to ten.}
+        \label{fig:test_fidelity_var_1}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_fidelity_var_2.png}
+        \caption{Example model response while increasing model fidelity from one to ten as design input variable x is increased from zero to one.}
+        \label{fig:test_fidelity_var_2}
+    \end{minipage}
+\end{figure}
+
 
 \subsection{Semi-Cooperative Features}
 
-The simulation supports a variety of semi-cooperative features. These are features in which the simulation intentionally reports randomly incorrect results (Req. 68), to include feasibility or infeasibility (Req. 69), as well as fails to execute based on pre-determined fault injection thresholds (Req. 65).
+The simulation supports a variety of semi-cooperative features. These are features in which the simulation intentionally reports randomly incorrect results (Req. 68), to include feasibility or infeasibility (Req. 69), as well as fails to execute based on pre-determined fault injection thresholds (Req. 65). When the enable\_random\_fitness configuration option is enabled, the random\_fitness\_rate controls how often incorrect random fitness reports are returned from the simulation.
 
-During scenario creation, some input dimensions are randomly selected to include fault injection with a corresponding failure threshold and magnitude. When a fault is present and the evaluated model response falls below the failure threshold the model response will be either degraded by scaling downward (Fig. \ref{fig:fault_mdl_5_mdl_resp_fault_degrade}) or will result in a simulation executive failure (Fig. \ref{fig:fault_mdl_8_mdl_resp_fault_029}). In the event of an executive failure the simulation will report 0.0 for the fitness score and will provide no indication that a failure was triggered. Fault via degradation and fault via executive failure result in separable and non-separable failure regions (Req. 66).
+During scenario creation, some input dimensions are randomly selected to include fault injection with a corresponding failure threshold and magnitude. When a fault is present and the evaluated model response falls below the failure threshold the model response will be either degraded by scaling downward (Fig. \ref{fig:fault_mdl_5_mdl_resp_fault_degrade}) or will result in a simulation executive failure (Fig. \ref{fig:fault_mdl_8_mdl_resp_fault_029}). In the event of an executive failure the simulation will report 0.0 for the fitness score and will provide no indication that a failure was triggered. Fault via degradation and fault via executive failure result in separable and non-separable failure regions (Req. 66). Figure \ref{fig:comp2d_inp_model_noise_faults} provides an example composition of two dimensions, input noise, model noise, random failure and infeasibility, as well as large black executive failure regions.
+
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{fault_mdl_5_mdl_resp_fault_degrade.png}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{fault_mdl_5_mdl_resp_fault_degrade.png}
 	\caption{Example model fault resulting in degraded response.}
 	\label{fig:fault_mdl_5_mdl_resp_fault_degrade}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{fault_mdl_8_mdl_resp_fault_0.29.png}
+	\caption{Example model complete failure triggered at locations where the model response falls below 0.29.}
+	\label{fig:fault_mdl_8_mdl_resp_fault_029}
+    \end{minipage}
+\end{figure}
+
+
+
+\subsection{Adversarial Features}
+
+The simulation creates an adversarial optimization environment as a function of the weighted history of fitness results, enabled using the enable\_adversarial configuration option (Req. 20). The simulation object contains an adversarial\_fitness state value that is continually updated each simulation evaluation by blending in the current iterations fitness value. The weighting of the blending is controlled via the adversarial\_feedback parameter, resulting in a temporal memory of fitness with greater weight on the most recent solutions. The magnitude of the adversarial\_fitness state value determines the scaling of adversarial features. This value is combined with a spline basic function to create non-linear artifacts in the scaling using the equation $x * (1 + s(s(x) - 0.5) * 0.5)$ where x is the adversarial\_fitness value in the range [0,1] and s(x) is the adversarial spline basic function evaluated at x (Figure \ref{fig:out_adversarial_fun}).
+
+The first method for adversarial feedback is by non-linear movement in the fitness landscape. if adversarial features are enabled in addition to the enable\_adversarial\_offset parameter, then each design input variables will be injected with a random bias scaled by the adversarial\_offset\_mag configuration parameter. This results in stronger movement in optimal basins if the recent fitness evaluations were near optimal. This effect is illustrated in Figure \ref{fig:test_adv_offset_l2r} and \ref{fig:test_adv_offset_r2l} by sweeping the design input from zero to one and then one to zero respectively. Different movements in the fitness landscapes are created based on recent fitness evaluations independent of what design inputs were used in the evaluations (Req. 62).
+
+The second method for adversarial feedback is by scaling the frequency of random incorrect results, random failure and random infeasibility events, and input and model uncertainty (Req. 63). This is created by enabling the enable\_adversarial\_incorrect, enable\_adversarial\_failure, and enable\_adversarial\_noise configuration options respectively. The adversarial\_incorrect\_factor, adversarial\_failure\_factor, and adversarial\_noise\_factor configuration parameters increase the random\_fitness\_rate, random\_fault\_rate, and random\_infeasible\_rate frequencies by a mutiple of (1.0 + factor * adversarial scaling) respectively. Figure \ref{fig:test_adv_fail} illustrates additional random failure events when the input value is near optimal around zero. Figure \ref{fig:test_adv_noise} illustrates the scaling in the uncertainty distribution by showing larger variance around the fitness solution as optimality is approached and equivalent uncertainty for fitness values near zero (Req. 54).
+
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{comp2d_inp_model_noise_faults.png}
+	\caption{Example combining a two-dimensional composition function with input and model uncertainty, random failures and infeasibility reports, as well as executive failure regions.}
+	\label{fig:comp2d_inp_model_noise_faults}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{out_adversarial_fun.png}
+	\caption{Construction of adversarial scaling factor by weighted sum of spline basic function and rolling fitness score.}
+	\label{fig:out_adversarial_fun}
+    \end{minipage}
 \end{figure}
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.6\textwidth]{fault_mdl_8_mdl_resp_fault_0.29.png}
-	\caption{Example model complete failure triggered at locations where the model response falls below 0.29.}
-	\label{fig:fault_mdl_8_mdl_resp_fault_029}
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_adv_offset_l2r.png}
+	\caption{Application of adversarial scaling factor to model input bias while scanning input dimension x from zero to one (left to right) illustrating the temporal relationship in adversarial fitness memory.}
+	\label{fig:test_adv_offset_l2r}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_adv_offset_r2l.png}
+	\caption{Application of adversarial scaling factor to model input bias while scanning input dimension x from one to zero (right to left) illustrating the temporal relationship in adversarial fitness memory.}
+	\label{fig:test_adv_offset_r2l}
+    \end{minipage}
 \end{figure}
 
-\subsection{Fitness Evaluation}
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_adv_fail.png}
+	\caption{Example showing an elevation in random failure events due to adversarial response when the rolling fitness score is near optimal.}
+	\label{fig:test_adv_fail}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_adv_noise.png}
+	\caption{Example showing an elevation in input and model noise due to adversarial response when the rolling fitness score is near optimal.}
+	\label{fig:test_adv_noise}
+    \end{minipage}
+\end{figure}
 
 
-\colorbox{yellow}{describe features that satisfy the above requirements.}
 
 \section{Experimentation Method}
 
-\colorbox{yellow}{tbd.}
+This section describes a series of experiments for comparing optimization performance using the Crucible Simulation.
+
+\subsection{Single Node Experiments}
+
+\colorbox{yellow}{Update}
+%Five single node experiments were performed with dimensions: 1, 2, 3, 5, and 10.
+%
+%Each scenario dimension was ran for the first one hundred scenario seeds.
+%
+%Each scenario was ran thirty times with different starting search seeds and stopped once reaching 100,000 simulation iterations.
+%
+%For every 100 simulation iterations, the current best score and number of function evaluations is stored
+%
+%plot log of 1 - best known score
+%
+%log 1-score on y, vs fes
+%iterations on y, vs fes
+%
+%cdf of score vs number of dimensions
+
+
+\subsection{Random Search Optimization Baseline}
+
+Random search is performed by selecting random values in the range [0,1) for each input dimension and evaluating the simulation fitness. If dynamic features are enabled then the best known location is re-evaluated. The result of the best known input location is compared to the result from random search. If the result from random search is greater than the result from the best known location, the best known location and fitness is set to the current random search location and fitness.
+
+
+\colorbox{yellow}{Add another method}
+
 
 \section{Experiment Results}
 
@@ -312,6 +512,18 @@ During scenario creation, some input dimensions are randomly selected to include
 
 \colorbox{yellow}{tbd.}
 
+
+\appendix
+\section{Configuration Parameters}
+\label{appdx}
+
+\begingroup
+
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\input{sim_config.tex}
+
+\endgroup
 
 \bibliography{mybib,cec}
 \bibliographystyle{ieeetr}
