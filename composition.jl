@@ -5,6 +5,7 @@ mutable struct SimCompositionFunction
     model_map               :: Array{Int}
     iso_optimal_limit       :: Float64
     scale_spline            :: SimSpline
+    comp_weight             :: Float64
     #
     coupling                :: Array{Any}
     #
@@ -13,6 +14,7 @@ mutable struct SimCompositionFunction
         ret.num_models = length(map_in)
         ret.model_map = map_in
         ret.iso_optimal_limit = (0.8 + 0.2 * rand(rng))
+        ret.comp_weight = rand(rng) * 0.95 + 0.05
         ret.scale_spline = SimSpline(config, rng, rand(rng, config.min_scale_knots:config.max_scale_knots))
         #
         ret.coupling = []

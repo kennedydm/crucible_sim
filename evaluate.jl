@@ -7,6 +7,10 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     verbose = false
     # verbose = true
 
+    if verbose
+        println("\n\nsim_eval")
+    end
+
     noise_seed :: Int = sim.config.noise_seed + sim.num_iterations
     rng_noise = Xoshiro(noise_seed % 1000000)
 
@@ -56,6 +60,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
         end
     end
 
+    
     # base and adversarial input shifting
     # add base offsets
     if sim.config.enable_input_shift
@@ -90,6 +95,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
             x[i] = x[i] + sum(randn(rng_noise, fidelity)) * input_noise_sigma / fidelity
         end
     end
+
 
     # wrap inputs
     for i in 1:sim.num_inputs
@@ -136,9 +142,20 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     
     # for each composition function
     #--------------------------------------------------------------------------
-    for k in 1:length(sim.comps)
+    if verbose
+        println("for k in 1:length(sim.comps)")
+    end
+
+    sum_comp_weights = 0.0
+    num_comps = length(sim.comps)
+
+    for k in 1:num_comps
+        if verbose
+            println("comp fun: ", k)
+        end
         comp = sim.comps[k]
         comp_scale_x = x[sim.num_inputs - k]
+        sum_comp_weights += comp.comp_weight
         
         # composition function aggregate fitness
         y = 0.0
@@ -201,6 +218,10 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
 
             # add to response
             y += z0 + z1
+            if verbose
+                println("mdl ", lhs, ": y+=", z0)
+                println("mdl ", rhs, ": y+=", z1)
+            end
             
             # check for feasibility
             if sim.config.enable_constraints
@@ -239,16 +260,26 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
 
             # add to response
             y += z
+            if verbose
+                println("mdl ", i, ": y+=", z)
+            end
             
         end
 
         # normalize y to sum of scale factors
         y /= sum_scale_factors
+        if verbose
+            println("sum_scale_factors: y/=", sum_scale_factors)
+        end
 
 
         # apply comp scale factor
         if sim.config.enable_comp_scale_inputs
-            y *= spline_eval(comp.scale_spline, comp_scale_x)
+            comp_scale = spline_eval(comp.scale_spline, comp_scale_x)
+            y *= comp_scale
+            if verbose
+                println("comp_scale_inputs: y*=", comp_scale)
+            end
             sim.num_function_evals += 1
         end
 
@@ -259,25 +290,45 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
             if y > 1.0
                 y = 2.0 - y
             end
+            if verbose
+                println("comp_iso_optimal: y*=", comp.iso_optimal_limit)
+            end
         end
 
 
         # return NaN if infeasible
         if sim.config.enable_constraints && y < 1 - sim.config.constraint_optimal_margin && isnan(constraint)
             update_adversarial_fitness(sim, 0.0)
+            if verbose
+                println("infeasible")
+            end
             return NaN
         end
         
 
         # add to fitness response
-        ret += y
+        ret += y * comp.comp_weight
+        if verbose
+            println("ret+=", y, " * ", comp.comp_weight)
+        end
 
+    end
+
+    
+    # scale using sum comp weights
+    ret /= sum_comp_weights
+    if verbose
+        println("sum_comp_weights: ret/=", sum_comp_weights)
     end
 
     
     # scale total output
     if sim.config.enable_total_scale_input
-        ret *= spline_eval(sim.scale_spline, tot_scale_x)
+        total_scale = spline_eval(sim.scale_spline, tot_scale_x)
+        ret *= total_scale
+        if verbose
+            println("total_scale: ret*=", total_scale)
+        end
         sim.num_function_evals += 1
     end
     
@@ -289,11 +340,17 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     # nan check
     if isnan(ret)
         update_adversarial_fitness(sim, 0.0)
+        if verbose
+            println("nan check: infeasible")
+        end
         return NaN
     end
     
     # clamp response before returning
-    ret = clamp(ret, 0, 1)
+    if verbose
+        println("ret before clamp: ", ret)
+    end
+    ret = clamp(ret, 0, 1-eps(Float64))
 
     update_adversarial_fitness(sim, ret)
     return ret
@@ -310,6 +367,11 @@ function model_eval(sim::SimStruct, mdl::Int, design_x::Float64, rng_noise::Xosh
     dyn_iter = 0
     if sim.config.enable_dynamic && sim.config.enable_dynamic_spline
         dyn_iter = sim.num_iterations
+    end
+
+    if isnan(design_x)
+        println("design_x is nan")
+        return 0.0, 0.0, true
     end
 
     # model response
