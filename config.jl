@@ -41,9 +41,14 @@ mutable struct SimConfig
     dyn_model_gen_vel_mag       :: Float64
     dyn_input_map_freq_min      :: Int
     dyn_input_map_freq_max      :: Int
+    dyn_network_map_freq_min    :: Int
+    dyn_network_map_freq_max    :: Int
     dyn_input_shift_freq_min    :: Int
     dyn_input_shift_freq_max    :: Int
     dyn_input_shift_mag         :: Float64
+    #
+    node_visit_required_rate    :: Float64
+    node_random_connection_freq :: Float64
     #
     enable_input_map            :: Bool
     enable_input_shift          :: Bool
@@ -58,6 +63,7 @@ mutable struct SimConfig
     enable_dynamic_spline       :: Bool
     enable_dynamic_input_map    :: Bool
     enable_dynamic_input_shift  :: Bool
+    enable_dynamic_network      :: Bool
     enable_constraints          :: Bool
     enable_inversion            :: Bool
     enable_flattening           :: Bool
@@ -67,6 +73,8 @@ mutable struct SimConfig
     enable_comp_scale_inputs    :: Bool
     enable_total_scale_input    :: Bool
     enable_random_fitness       :: Bool
+    enable_node_required_visits :: Bool
+    enable_fail_on_bad_path     :: Bool
     #
     quiet_init                  :: Bool
     save_debug_figs             :: Bool
@@ -112,9 +120,13 @@ mutable struct SimConfig
         ret.dyn_model_gen_vel_mag = 0.05 # per 1000 iterations
         ret.dyn_input_map_freq_min = 1500
         ret.dyn_input_map_freq_max = 2500
+        ret.dyn_network_map_freq_min = 1200
+        ret.dyn_network_map_freq_max = 1500
         ret.dyn_input_shift_freq_min = 800
         ret.dyn_input_shift_freq_max = 1200
         ret.dyn_input_shift_mag = 0.1
+        ret.node_visit_required_rate = 0.1
+        ret.node_random_connection_freq = 0.2
         #
         ret.enable_input_shift = true
         ret.enable_input_map = true
@@ -129,6 +141,7 @@ mutable struct SimConfig
         ret.enable_dynamic_spline = true
         ret.enable_dynamic_input_map = true
         ret.enable_dynamic_input_shift = true
+        ret.enable_dynamic_network = true
         ret.enable_constraints = true
         ret.enable_flattening = true
         ret.enable_faults = true
@@ -138,6 +151,8 @@ mutable struct SimConfig
         ret.enable_comp_scale_inputs = true
         ret.enable_total_scale_input = true
         ret.enable_random_fitness = true
+        ret.enable_node_required_visits = true
+        ret.enable_fail_on_bad_path = true
         #
         ret.quiet_init = false
         ret.save_debug_figs = false
@@ -186,9 +201,14 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- dyn_model_gen_vel_mag          : ", config.dyn_model_gen_vel_mag           ))
     sim_log(io, config.quiet_init, string("- dyn_input_map_freq_min         : ", config.dyn_input_map_freq_min          ))
     sim_log(io, config.quiet_init, string("- dyn_input_map_freq_max         : ", config.dyn_input_map_freq_max          ))
+    sim_log(io, config.quiet_init, string("- dyn_network_map_freq_min       : ", config.dyn_network_map_freq_min        ))
+    sim_log(io, config.quiet_init, string("- dyn_network_map_freq_max       : ", config.dyn_network_map_freq_max        ))
     sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_min       : ", config.dyn_input_shift_freq_min        ))
     sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_max       : ", config.dyn_input_shift_freq_max        ))
     sim_log(io, config.quiet_init, string("- dyn_input_shift_mag            : ", config.dyn_input_shift_mag             ))
+    sim_log(io, config.quiet_init, string("- node_visit_required_rate       : ", config.node_visit_required_rate        ))
+    sim_log(io, config.quiet_init, string("- node_random_connection_freq    : ", config.node_random_connection_freq     ))
+
     #       
     sim_log(io, config.quiet_init, string("- enable_input_map               : ", config.enable_input_map                ))
     sim_log(io, config.quiet_init, string("- enable_input_shift             : ", config.enable_input_shift              ))
@@ -203,6 +223,7 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- enable_dynamic_spline          : ", config.enable_dynamic_spline           ))
     sim_log(io, config.quiet_init, string("- enable_dynamic_input_map       : ", config.enable_dynamic_input_map        ))
     sim_log(io, config.quiet_init, string("- enable_dynamic_input_shift     : ", config.enable_dynamic_input_shift      ))
+    sim_log(io, config.quiet_init, string("- enable_dynamic_network         : ", config.enable_dynamic_network          ))
     sim_log(io, config.quiet_init, string("- enable_constraints             : ", config.enable_constraints              ))
     sim_log(io, config.quiet_init, string("- enable_inversion               : ", config.enable_inversion                ))
     sim_log(io, config.quiet_init, string("- enable_flattening              : ", config.enable_flattening               ))
@@ -212,6 +233,9 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- enable_comp_scale_inputs       : ", config.enable_comp_scale_inputs        ))
     sim_log(io, config.quiet_init, string("- enable_total_scale_input       : ", config.enable_total_scale_input        ))
     sim_log(io, config.quiet_init, string("- enable_random_fitness          : ", config.enable_random_fitness           ))
+    sim_log(io, config.quiet_init, string("- enable_node_required_visits    : ", config.enable_node_required_visits     ))
+    sim_log(io, config.quiet_init, string("- enable_fail_on_bad_path        : ", config.enable_fail_on_bad_path         ))
+    
     #           
     sim_log(io, config.quiet_init, string("- quiet_init                     : ", config.quiet_init                      ))
     sim_log(io, config.quiet_init, string("- save_debug_figs                : ", config.save_debug_figs                 ))
