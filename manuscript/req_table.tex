@@ -25,10 +25,10 @@
 10 & Provide the capability to set feature parameters & \\ \hline
 11 & Support for continuous and mixed-integer problems & \\ \hline
 12 & Support for separable and non-separable inputs & \\ \hline
-13 & Multi-paradigm problem combining pathfinding and single objective minimization & \\ \hline
+13 & Multi-paradigm problem combining pathfinding and single objective maximization & \\ \hline
 14 & Support for scalable problem complexity & \\ \hline
 15 & Ensure that simulation response truth is between zero and one & \\ \hline
-16 & Ensure that the optimal response is a minimization with value at zero & \\ \hline
+16 & Ensure that the optimal response is a maximization with value at one & \\ \hline
 17 & Support for variable model input and response fidelity & \\ \hline
 18 & Support for niching optimization by providing many optimal solutions & Niching methods can be used to track multiple optimal solutions to support decision-making [CEC Niching 2013]\\ \hline
 19 & Support for dynamic problems & \\ \hline
@@ -36,20 +36,20 @@
 21 & Support for semi-cooperative behavior & \\ \hline
  &  & \\ \hline
 \cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Composition Function Requirements} & \cellcolor{lightgray} \\ \hline
-22 & Create governing equations using basic equations & \\ \hline
-23 & Create composition functions using basic equations & \\ \hline
-24 & Map inputs to composition functions through governing equations & \\ \hline
-25 & Support for chaotic optimal basin locations in basic functions & \\ \hline
+22 & Create governing functions using basic functions & \\ \hline
+23 & Create model functions using basic functions & \\ \hline
+24 & Create model responses by mapping inputs to model functions through governing functions & \\ \hline
+25 & Create composition functions using a weighted sum of model responses & \\ \hline
 26 & Support for non-axis aligned composition functions & \\ \hline
 27 & Support for scalable number of composition functions & \\ \hline
 28 & "Support composition equation landscapes that can be smooth, discontinuous, with narrow or wide basins, shallow or deep basins, multi-modal, flattened, and non-linear" & \\ \hline
 29 & Support for deceptive basins & \\ \hline
 30 & Support for composition function scaling using basic equations & \\ \hline
-31 & Create constraint functions using basic equations & \\ \hline
-32 & Map inputs to constraint functions through governing equations & \\ \hline
-33 & Support feasible and infeasible input regions & \\ \hline
-34 & Support for separable and non-separable constraints & \\ \hline
-35 & Support for variable conditioning between inputs and responses & \\ \hline
+31 & Support for variable conditioning between inputs and responses & \\ \hline
+32 & Create constraint functions using basic equations & \\ \hline
+33 & Map inputs to constraint functions through governing equations & \\ \hline
+34 & Support feasible and infeasible input regions & \\ \hline
+35 & Support for separable and non-separable constraints & \\ \hline
  &  &  \\ \hline
 \cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Network Pathfinding Requirements} & \cellcolor{lightgray} \\ \hline
 36 & Support pathfinding through networked nodes & \\ \hline
@@ -57,10 +57,10 @@
 38 & Calculate a node single target fitness score from a weighted sum of composition functions & \\ \hline
 39 & Calculate a network single target fitness score from a weighted sum of node fitness scores in the pathfinding path & \\ \hline
 40 & Support for network path feasibility based on network trajectory & \\ \hline
-41 & Support for interactions between node function trajectories and network path trajectory & \\ \hline
+41 & Support for interactions between node importance and network path trajectory & increase weighting linear by visitation\\ \hline
 42 & Support network node visitation requirements & \\ \hline
  &  & \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Iso-Optimal Surface Requirements} & \cellcolor{lightgray} \\ \hline
+\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Node Iso-Optimal Surface Requirements} & \cellcolor{lightgray} \\ \hline
 43 & Support for a global iso-optimal surface & Facilitate niching optimization methods\\ \hline
 44 & Support for disconnected iso-optimal regions & Facilitate niching optimization methods\\ \hline
 45 & Support for scalable number of local iso-optimal surfaces & Facilitate niching optimization methods and scalable complexity\\ \hline
@@ -69,32 +69,29 @@
 46 & Support for stochastic inputs & \\ \hline
 47 & Support for stochastic responses from deterministic inputs & \\ \hline
 48 & Randomness is seeded & Required for repeatable results\\ \hline
-49 & Support for correlated noise & \\ \hline
-50 & Support for stochastic network effects & \\ \hline
-51 & Support for stochastic constraints & \\ \hline
-52 & Support for randomized input mapping to composition functions & \\ \hline
-53 & Support for stochastic dynamic event timing & \\ \hline
-54 & Support for stationary and non-stationary distributions & \\ \hline
+49 & Support for stochastic network effects & node weights compound change each re-build\\ \hline
+50 & Support for stochastic constraints & \\ \hline
+51 & Support for randomized input mapping to composition functions & \\ \hline
+52 & Support for stochastic dynamic discrete event timing & \\ \hline
+53 & Support for stationary and non-stationary distributions & \\ \hline
  &  &  \\ \hline
 \cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Dynamic Behavior Requirements} & \cellcolor{lightgray} \\ \hline
-55 & Support for discrete events based on number of simulation iterations & \\ \hline
-56 & Support for discrete network path configuration change events & \\ \hline
-57 & Support for continuously changing basic function landscapes based on number of simulation iterations & \\ \hline
-58 & Support for continuously changing constraints based on number of simulation iterations & \\ \hline
-59 & Support discrete objective and constraint landscape change events & \\ \hline
-60 & Support for continuously changing semi-cooperative behavior thresholds based on number of simulation iterations. & \\ \hline
-61 & Support for discrete semi-cooperative behavior change events & \\ \hline
+54 & Support for discrete events based on number of simulation iterations & \\ \hline
+55 & Support for discrete network path configuration change events & \\ \hline
+56 & Support for continuously changing basic function landscapes based on number of simulation iterations & \\ \hline
+57 & Support for continuously changing constraints based on number of simulation iterations & \\ \hline
+58 & Support discrete objective and constraint landscape change events & \\ \hline
  &  &  \\ \hline
 \cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Adversarial Behavior Requirements} & \cellcolor{lightgray} \\ \hline
-62 & Support for moving optimal location as a function of previous fitness score & \\ \hline
-63 & Support for variable frequency of semi-cooperative behavior as a function of previous fitness score & \\ \hline
+59 & Support for moving optimal location as a function of previous fitness score & \\ \hline
+60 & Support for variable frequency of semi-cooperative behavior as a function of previous fitness score & \\ \hline
  &  &  \\ \hline
 \cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Semi-Cooperative Behavior Requirements} & \cellcolor{lightgray} \\ \hline
-64 & Support for partial degradation and complete failure results & \\ \hline
-65 & Support for deterministic and stochastic failures & \\ \hline
-66 & Support for separable and non-separable failure regions & \\ \hline
-67 & Support for pathfinding based failures & \\ \hline
-68 & Support for random incorrect fitness result & \\ \hline
-69 & Support for random incorrect feasibility result & \\ \hline
+61 & Support for partial degradation and complete failure results & \\ \hline
+62 & Support for deterministic failures & \\ \hline
+63 & Support for separable and non-separable failure regions & \\ \hline
+64 & Support for pathfinding based failures & \\ \hline
+65 & Support for random incorrect fitness result & \\ \hline
+66 & Support for random incorrect feasibility result & \\ \hline
 
 \end{longtable}

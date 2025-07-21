@@ -1,4 +1,4 @@
-\begin{longtable}{| p{0.3\linewidth} | C{0.15\linewidth} | p{0.45\linewidth} | }
+\begin{longtable}{| p{0.3\linewidth} | C{0.10\linewidth} | p{0.50\linewidth} | }
 
 \caption{Simulation Configuration Parameters.}\\
 
@@ -49,9 +49,13 @@ dyn\_model\_inp\_vel\_mag & 0.05 & \\ \hline
 dyn\_model\_gen\_vel\_mag & 0.05 & \\ \hline
 dyn\_input\_map\_freq\_min & 1500 & \\ \hline
 dyn\_input\_map\_freq\_max & 2500 & \\ \hline
+dyn\_network\_map\_freq\_min & 1200 & \\ \hline
+dyn\_network\_map\_freq\_max & 1500 & \\ \hline
 dyn\_input\_shift\_freq\_min & 800 & \\ \hline
 dyn\_input\_shift\_freq\_max & 1200 & \\ \hline
 dyn\_input\_shift\_mag & 0.1 & \\ \hline
+node\_visit\_required\_rate & 0.1 & \\ \hline
+node\_random\_connection\_freq & 0.2 & \\ \hline
 & & \\
 \cellcolor{lightgray} \textbf{Feature Enablement} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
 enable\_input\_map & TRUE & \\ \hline
@@ -67,6 +71,7 @@ enable\_dynamic & TRUE & \\ \hline
 enable\_dynamic\_spline & TRUE & \\ \hline
 enable\_dynamic\_input\_map & TRUE & \\ \hline
 enable\_dynamic\_input\_shift & TRUE & \\ \hline
+enable\_dynamic\_network & TRUE & \\ \hline
 enable\_constraints & TRUE & \\ \hline
 enable\_inversion & TRUE & \\ \hline
 enable\_flattening & TRUE & \\ \hline
@@ -76,6 +81,8 @@ enable\_skewing & TRUE & \\ \hline
 enable\_comp\_scale\_inputs & TRUE & \\ \hline
 enable\_total\_scale\_input & TRUE & \\ \hline
 enable\_random\_fitness & TRUE & \\ \hline
+enable\_node\_required\_visits & TRUE & \\ \hline
+enable\_fail\_on\_bad\_path & TRUE & \\ \hline
 quiet\_init & FALSE & \\ \hline
 save\_debug\_figs & FALSE & \\ \hline
 
