@@ -7,6 +7,7 @@
 \usepackage{lipsum}
 \usepackage{float}
 \usepackage{amsmath}
+\usepackage{lipsum}
 
 \graphicspath{{figs/}}
 
@@ -158,7 +159,7 @@ Table: \ref{tbl:sim-reqs}
 
 The Crucible simulation is written in the Julia \colorbox{yellow}{[REF]} programming language to provide compiled performance with repeatable environments (Req. 1, 3).
 
-Simulation configuration is performed by creating a configuration object using the SimConfig() function. This object is used to enable simulation features and set feature parameters (Req. 9, 10). A comprehensive list of configuration parameters is provided in Appendix \ref{appdx}.
+Simulation configuration is performed by creating a configuration object using the SimConfig() function. This object is used to enable simulation features and set feature parameters (Req. 9, 10). A comprehensive list of configuration parameters with setpoints and justification is provided in Section \ref{configparams}.
 
 Scenario level randomization is controlled by seeding an Xoshiro random number stream from the Random package using the scenario seed configuration parameter (Req. 3, 48). This stream is used for constructing the simulation prior to execution (Req. 2).
 
@@ -175,6 +176,8 @@ After each simulation run, the simulation object parameter num\_function\_evals 
 During simulation construction a log of the scenario features and configuration parameters is written to the filename provided in the logfile configuration parameter or the file "logfile.txt" by default (Req. 8).
 
 The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: $y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand()$. The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
+
+
 
 \section{Simulation Features}
 
@@ -493,47 +496,27 @@ The simulation can enforce that certain nodes in the network are visited or else
 
 \section{Experimentation Method}
 
-This section describes a series of experiments for comparing optimization performance using the Crucible Simulation.
+This section describes a series of experiments for tuning the configuration parameters and comparing optimization performance using the Crucible Simulation. Depending on the experiment, different optimization strategies are used. These include the Evolutionary Centers Algorithm (ECA), Particle Swarm Optimization (PSO), and Simulated Annealing (SA) optimizers from the Metaheuristics.jl package \colorbox{yellow}{[REF]}, as well as Random Search (RND) as described below.
 
-\subsection{Single Node Experiments}
+During each simulation iteration, the designated optimzer provides an array of values to a callback function with the length of the array equal to the number of simulation inputs (sim.num\_inputs) plus the number of nodes (sim.config.num\_nodes). The first portion of the inputs pass through as design variables. The node inputs are sorted by value and the resulting index order is provided as the desired network path thus allowing a continuous input space for a mixed-integer optimization problem. The simulation fitness is evaluated using the design inputs, network path, and fidelity level 1 (lowest). Next, the number of simulation iterations is decremented and the adversarial feedback is temporarily set to 1.0 before running the simulation again with the best known inputs thus far and saving the regression fitness. This allows the experiment to measure the quality of the best known inputs at each iteration without affecting dynamic and adversarial features. If the current iteration score is higher than this regression fitness then the current iteration inputs are set as the new best known inputs. After each iteration, the best known fitness is appended to a result array.
 
-\colorbox{yellow}{Update}
-%Five single node experiments were performed with dimensions: 1, 2, 3, 5, and 10.
-%
-%Each scenario dimension was ran for the first one hundred scenario seeds.
-%
-%Each scenario was ran thirty times with different starting search seeds and stopped once reaching 100,000 simulation iterations.
-%
-%For every 100 simulation iterations, the current best score and number of function evaluations is stored
-%
-%plot log of 1 - best known score
-%
-%log 1-score on y, vs fes
-%iterations on y, vs fes
-%
-%cdf of score vs number of dimensions
+Each experiment treatment runs ten replicates of thirty scenario seeds for ten-thousand iterations. This results in three-million fitness scores per treatment in the result array. This array is used for post-processing to find the 50th and 90th percentile best fitness scores, $F_{50}$ and $F_{90}$ respectively, for each treatment. In the event that the ECA, PSO, or SA optimizers stop before ten-thousand iterations due to convergence, the experiment continues to run until the iteration limit while storing the updated fitness at the best known input location. When dynamic features are enabled this could result in lower performance if an optimizer returns earlier than the requested number of iterations.
+
+When Random Search is used, all design variables and node inputs are chosen from a random distribution in the range [0, 1) using the Xoshiro generator. The random number seed used by all optimizers starts at zero at the begining of the treatment and increments by one after each replicate resulting in three-hundred total seeds per treatment.
 
 
-\subsection{Random Search Optimization Baseline}
+\subsection{Experiment 0. Configuration Parameter Tuning}
+\label{configparams}
 
-Random search is performed by selecting random values in the range [0,1) for each input dimension and evaluating the simulation fitness. If dynamic features are enabled then the best known location is re-evaluated. The result of the best known input location is compared to the result from random search. If the result from random search is greater than the result from the best known location, the best known location and fitness is set to the current random search location and fitness.
+Prior to running the performance comparison experiments, the simulation configuration parameters were tuned. As with the comparison experiments, ten replicates of thirty scenario seeds for ten-thousand iterations were used during each tuning cycle. Parameters were tuned to allow features to have an observable impact without overly burdening or improving performance. The descriptions of parameters with setpoint justification is provided below in Table \ref{tbl:sim-config}.
 
+Before tuning, the following inputs were explicitly selected without tuning: model noise sigma, fidelity power, flattening rate, inversion rate, random fault rate, random infeasible rate, random fitness rate, constraint input margin, constraint optimal margin, min knots, max knots, min scale knots, max scale knots, min constraint knots, max constraint knots, max skew magnitude, knot feedback, adversarial noise factor, adversarial incorrect factor, adversarial feedback, min adversarial knots, max adversarial knots,
+dyn input map freq min, dyn input map freq max, dyn network map freq min, dyn network map freq max, dyn input shift freq min, dyn input shift freq max, node visit required freq, and node random connection freq.
 
-\colorbox{yellow}{Add another method}
+Next, feature configuration parameters were tuned by running the designated experiment size using scenarios with five nodes of five dimensions. For each configuration parameter, a baseline $F_{50}$ score was calculated with no effect, then bisection search was used to find a parameter setpoint that reached a specific $F_{50}$ performance delta. This was chosen to balance the effect of different features on overall performance. After tuning, the parameters place the 90th percentile fitness ($F_{90}$) score just above 0.0 when all features were enabled in the four-dimension-four-node scenarios of Experiment 3, thereby providing wide comparative illustration of the compounding effect of each feature on optimizer performance.
 
+The first parameter tuned was the iso optimal threshold. As the threshold is reduce from 1.0, the iso optimal surface area grows making solutions easier to find. Bisection search was used to improve the $F_{50}$ score to place it at 0.70. For the remaining parameters, the baseline score included the following enabled features: input mapping, input shifting, composition function scaling, node total fitness scaling, spline flattening, spline inversion, model noise, spline couple pair skewing, and node visitation requirements. The following parameters were tuned to create a -0.02 $\Delta F_{50}$: input noise sigma, dyn model inp vel mag, dyn model gov vel mag, dyn inp shift, adversarial offset mag, and adversarial failure factor. Lastly, due to the interaction between fault threshold and fault degredation rate, fault max thresh was first tuned to create a -0.015 $\Delta F_{50}$ with degredation rate set to 0.0. Then fault degredation rate was increased to create a +0.005 $\Delta F_{50}$, this way the combination of inputs resulted in an overall delta of only -0.01.
 
-\section{Experiment Results}
-
-\colorbox{yellow}{tbd.}
-
-\section{Conclusions}
-
-\colorbox{yellow}{tbd.}
-
-
-\appendix
-\section{Configuration Parameters}
-\label{appdx}
 
 \begingroup
 
@@ -542,6 +525,459 @@ Random search is performed by selecting random values in the range [0,1) for eac
 \input{sim_config.tex}
 
 \endgroup
+
+
+\subsection{Experiment 1. Optimizer Comparison by Varying Dimension Quantity }
+
+The first experiment was performed to compare the impact of raising the number of dimensions on a single node while using different optimization algorithms with all features off and all features on. The full-factorial experiment design is captured in Table \ref{tbl:exp1-doe} for a total of fourty treatments. The standard setup of ten replicates of thirty scenario seeds for ten-thousand iterations was performed for each experiment treatment resulting in one-hundred-and-twenty-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-1}.
+
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+\begin{table}[H]
+	\centering
+	\caption{Experiment 1 Design}
+	\label{tbl:exp1-doe}
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.12\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | }
+	\hline
+	\textbf{Factors} & \multicolumn{4}{c|}{\textbf{Levels}} \\ \hline
+	Features & \multicolumn{2}{c|}{All Off} & \multicolumn{2}{c|}{All On} \\ \hline
+	Algorithm & RND & ECA & PSO & SA \\ \hline
+	Dimensions & \multicolumn{4}{@{}c@{}|}{\hspace*{\fill} 1 \hspace*{\fill}\vrule\hspace*{\fill} 3 \hspace*{\fill}\vrule\hspace*{\fill} 5 \hspace*{\fill}\vrule\hspace*{\fill} 10 \hspace*{\fill}\vrule\hspace*{\fill} 20 \hspace*{\fill}} \\ \hline
+	Nodes & \multicolumn{4}{c|}{1} \\ \hline
+	\end{tabular}
+\end{table}
+
+
+\subsection{Experiment 2. Optimizer Comparison by Varying Node Quantity }
+
+The results from Experiment 1 were used to downselect the optimization algorithms to RND and ECA only based on their comparable good performance in Experiment 1 with all features enabled. This second experiment varied the number of nodes from one to five while keeping the number of dimensions fixed at four and compare the performance for all features on and all features off. The full-factorial experiment design is captured in Table \ref{tbl:exp2-doe} for a total of twenty treatments. Using the standard replicate and scenario setup resulted in sixty-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-2}.
+
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+\begin{table}[H]
+	\centering
+	\caption{Experiment 2 Design}
+	\label{tbl:exp2-doe}	
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.12\linewidth} | C{0.16\linewidth} | C{0.16\linewidth} | }
+	\hline
+	\textbf{Factors} & \multicolumn{2}{c|}{\textbf{Levels}} \\ \hline
+	Features & All Off & All On \\ \hline
+	Algorithm & RND & ECA \\ \hline
+	Dimensions & \multicolumn{2}{c|}{4} \\ \hline
+	Nodes & \multicolumn{2}{@{}c@{}|}{\hspace*{\fill} 1 \hspace*{\fill}\vrule\hspace*{\fill} 2 \hspace*{\fill}\vrule\hspace*{\fill} 3 \hspace*{\fill}\vrule\hspace*{\fill} 4 \hspace*{\fill}\vrule\hspace*{\fill} 5 \hspace*{\fill}} \\ \hline
+	\end{tabular}
+\end{table}
+
+
+\subsection{Experiment 3. Optimizer Comparison Across Features }
+
+The results from Experiment 1 and 2 were used to select four nodes with four dimensions as the network configuration for Experiment 3. This provided a challenging test case for illustrating the effects of individual features. The experiment was perform in two phases. The first phase performed the standard set of three million iterations (ten replicates, thirty scenarios, with ten-thousand iterations each) while enabling features in isolation to compare thier individual impact against a baseline with no features enabled. The second phase performed the standard three million iterations while enabling features in series to compare their cumulative impact against a baseline with no features enabled. Both phases were performed using RND and ECA optimization for comparison. The full-factorial design is provided in Table \ref{tbl:exp3-doe} resulting in three-hundred-and-twelve-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-3}.
+
+
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+\begin{table}[H]
+	\centering
+	\caption{Experiment 3 Design}
+	\label{tbl:exp3-doe}	
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.12\linewidth} | C{0.16\linewidth} | C{0.16\linewidth} | }
+	\hline
+	\textbf{Factors} & \multicolumn{2}{c|}{\textbf{Levels}} \\ \hline
+	Features & Individual & Cumulative \\ \hline
+	Algorithm & RND & ECA \\ \hline
+	Dimensions & \multicolumn{2}{c|}{4} \\ \hline
+	Nodes & \multicolumn{2}{c|}{4} \\ \hline
+	\end{tabular}
+\end{table}
+
+
+
+
+
+\section{Experiment Results}
+
+introduction sentence
+
+
+\subsection{Experiment 1. Optimizer Comparison by Varying Dimension Quantity }
+\label{sec:results-1}
+
+description of results
+
+important findings
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+table of results
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+
+\begin{table}[H]
+	\centering
+	\caption{Experiment 1 Fitness Results for Adding Dimensions Across Four Optimizers}
+	\label{tbl:exp1}	
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| C{0.12\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | }
+	\hline
+	& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} & \multicolumn{2}{c|}{PSO} & \multicolumn{2}{c|}{SA} \\ \hline
+    \textbf{Dimensions} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} \\ \hline
+
+\multicolumn{9}{|l|}{\cellcolor{lightgray}\textbf{All Features OFF}} \\ \hline
+1 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\ \hline
+3 & 0.985 & 0.999 & 0.997 & 1.000 & 0.992 & 1.000 & 1.000 & 1.000 \\ \hline
+5 & 0.929 & 0.970 & 0.962 & 0.991 & 0.950 & 0.990 & 1.000 & 1.000 \\ \hline
+10 & 0.853 & 0.902 & 0.885 & 0.932 & 0.893 & 0.953 & 0.997 & 1.000 \\ \hline
+20 & 0.766 & 0.832 & 0.796 & 0.859 & 0.820 & 0.885 & 0.984 & 1.000 \\ \hline
+
+\multicolumn{9}{|l|}{ } \\ \hline
+\multicolumn{9}{|l|}{\cellcolor{lightgray}\textbf{All Features ON}} \\ \hline
+1 & 0.616 & 0.903 & 0.641 & 0.922 & 0.277 & 0.775 & 0.324 & 0.738 \\ \hline
+3 & 0.508 & 0.785 & 0.524 & 0.805 & 0.178 & 0.611 & 0.229 & 0.629 \\ \hline
+5 & 0.374 & 0.650 & 0.403 & 0.672 & 0.059 & 0.464 & 0.103 & 0.456 \\ \hline
+10 & 0.099 & 0.405 & 0.103 & 0.415 & 0.000 & 0.185 & 0.000 & 0.199 \\ \hline
+20 & 0.000 & 0.000 & 0.000 & 0.008 & 0.000 & 0.000 & 0.000 & 0.000 \\ \hline
+	\end{tabular}
+\end{table}
+
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1_compare_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1_compare_eca}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_pso.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1_compare_pso}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_sa.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1_compare_sa}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1b_compare_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1b_compare_eca}
+    \end{minipage}
+\end{figure}
+
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_pso.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1b_compare_pso}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_sa.png}
+	\caption{asdf.}
+	\label{fig:test_exp_1b_compare_sa}
+    \end{minipage}
+\end{figure}
+
+
+\subsection{Experiment 2. Optimizer Comparison by Varying Node Quantity }
+\ref{sec:results-2}
+
+description of results
+
+important findings
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+table of results
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+
+\begin{table}[H]
+	\centering
+	\caption{Experiment 2 Fitness Results for Adding Nodes with Four Dimensions}
+	\label{tbl:exp2}	
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| C{0.11\linewidth} | C{0.11\linewidth} | C{0.11\linewidth} | C{0.11\linewidth} | C{0.11\linewidth} | }
+	\hline
+	 & \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\textbf{Nodes} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} \\ \hline
+
+
+\multicolumn{5}{|l|}{\cellcolor{lightgray}\textbf{All Features OFF}} \\ \hline
+1 & 0.964 & 0.988 & 0.984 & 0.999 \\ \hline
+2 & 0.866 & 0.930 & 0.911 & 0.959 \\ \hline
+3 & 0.788 & 0.869 & 0.854 & 0.914 \\ \hline
+4 & 0.724 & 0.798 & 0.800 & 0.872 \\ \hline
+5 & 0.664 & 0.742 & 0.749 & 0.819 \\ \hline
+
+\multicolumn{5}{|l|}{ } \\ \hline
+\multicolumn{5}{|l|}{\cellcolor{lightgray}\textbf{All Features ON}} \\ \hline
+1 & 0.470 & 0.725 & 0.491 & 0.749 \\ \hline
+2 & 0.232 & 0.476 & 0.244 & 0.507 \\ \hline
+3 & 0.000 & 0.271 & 0.000 & 0.252 \\ \hline
+4 & 0.000 & 0.033 & 0.000 & 0.023 \\ \hline
+5 & 0.000 & 0.000 & 0.000 & 0.000 \\ \hline
+	\end{tabular}
+\end{table}
+
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_2_compare_4dim_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_2_compare_4dim_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_2_compare_4dim_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_2_compare_4dim_eca}
+    \end{minipage}
+\end{figure}
+
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_2b_compare_4dim_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_2b_compare_4dim_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_2b_compare_4dim_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_2b_compare_4dim_eca}
+    \end{minipage}
+\end{figure}
+
+
+\subsection{Experiment 3. Optimizer Comparison Across Features }
+\label{sec:results-3}
+
+description of results
+
+important findings
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+\begingroup
+
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\setlength\LTcapwidth{\linewidth}
+
+\begin{longtable}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
+
+\caption{Experiment 3 Fitness Sensitivity for Individual Features}\\
+
+\hline
+ & \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
+\endfirsthead
+
+\hline
+& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
+\endhead
+
+baseline & 0.723 & 0.797 & 0.799 & 0.871 \\ \hline
+iso\_optimal & +0.052 & +0.047 & +0.051 & +0.040 \\ \hline
+input\_noise & -0.007 & -0.003 & -0.012 & -0.011 \\ \hline
+model\_noise & 0.000 & +0.001 & -0.002 & -0.002 \\ \hline
+input\_shift & -0.001 & +0.006 & -0.004 & -0.006 \\ \hline
+input\_map & -0.001 & -0.003 & -0.002 & -0.002 \\ \hline
+flattening & 0.000 & -0.001 & -0.001 & -0.005 \\ \hline
+inversion & -0.001 & 0.000 & -0.001 & -0.006 \\ \hline
+skewing & -0.006 & -0.003 & -0.003 & -0.003 \\ \hline
+constraints & -0.106 & -0.077 & -0.160 & -0.096 \\ \hline
+comp\_scale\_inputs & -0.213 & -0.201 & -0.154 & -0.123 \\ \hline
+total\_scale\_input & -0.185 & -0.160 & -0.125 & -0.092 \\ \hline
+faults & -0.028 & -0.017 & -0.045 & -0.026 \\ \hline
+node\_required\_visits & -0.002 & -0.002 & +0.009 & +0.006 \\ \hline
+dynamic & 0.000 & 0.000 & 0.000 & 0.000 \\ \hline
+dynamic\_spline & -0.029 & -0.027 & -0.018 & -0.028 \\ \hline
+dynamic\_input\_map & -0.027 & -0.022 & -0.030 & -0.029 \\ \hline
+dynamic\_input\_shift & -0.024 & -0.015 & -0.022 & -0.013 \\ \hline
+dynamic\_network & -0.046 & +0.005 & -0.102 & -0.032 \\ \hline
+adversarial & 0.000 & 0.000 & 0.000 & 0.000 \\ \hline
+adversarial\_noise & -0.001 & +0.003 & -0.004 & -0.002 \\ \hline
+adversarial\_offset & -0.039 & -0.023 & -0.064 & -0.041 \\ \hline
+adversarial\_failure & -0.046 & -0.032 & -0.061 & -0.037 \\ \hline
+adversarial\_incorrect & -0.024 & -0.012 & -0.042 & -0.036 \\ \hline
+fail\_on\_bad\_path & -0.003 & -0.002 & +0.007 & +0.002 \\ \hline
+random\_fitness & -0.001 & -0.001 & -0.014 & -0.013
+
+\label{tbl:exp3-parallel} \\ \hline
+
+\end{longtable}
+
+\endgroup
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+\begingroup
+
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\setlength\LTcapwidth{\linewidth}
+
+\begin{longtable}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
+
+\caption{Experiment 3 Fitness Sensitivity Results for Stacking Features}\\
+
+\hline
+& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
+\endfirsthead
+
+\hline
+& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
+\endhead
+
+baseline & 0.723 & 0.797 & 0.799 & 0.871 \\ \hline
+iso\_optimal & +0.052 & +0.047 & +0.051 & +0.040 \\ \hline
+input\_noise & +0.044 & +0.042 & +0.038 & +0.031 \\ \hline
+model\_noise & +0.040 & +0.037 & +0.030 & +0.022 \\ \hline
+input\_shift & +0.039 & +0.031 & +0.025 & +0.021 \\ \hline
+input\_map & +0.042 & +0.038 & +0.031 & +0.021 \\ \hline
+flattening & +0.042 & +0.038 & +0.028 & +0.022 \\ \hline
+inversion & +0.041 & +0.038 & +0.029 & +0.022 \\ \hline
+skewing & +0.037 & +0.037 & +0.025 & +0.021 \\ \hline
+constraints & -0.178 & -0.086 & -0.179 & -0.100 \\ \hline
+comp\_scale\_inputs & -0.362 & -0.299 & -0.363 & -0.266 \\ \hline
+total\_scale\_input & -0.464 & -0.413 & -0.462 & -0.383 \\ \hline
+faults & -0.484 & -0.429 & -0.489 & -0.421 \\ \hline
+node\_required\_visits & -0.572 & -0.507 & -0.609 & -0.482 \\ \hline
+dynamic & -0.572 & -0.507 & -0.609 & -0.482 \\ \hline
+dynamic\_spline & -0.591 & -0.540 & -0.616 & -0.497 \\ \hline
+dynamic\_input\_map & -0.612 & -0.562 & -0.638 & -0.556 \\ \hline
+dynamic\_input\_shift & -0.617 & -0.574 & -0.641 & -0.564 \\ \hline
+dynamic\_network & -0.684 & -0.597 & -0.770 & -0.656 \\ \hline
+adversarial & -0.684 & -0.597 & -0.770 & -0.656 \\ \hline
+adversarial\_noise & -0.685 & -0.598 & -0.770 & -0.663 \\ \hline
+adversarial\_offset & -0.685 & -0.602 & -0.771 & -0.666 \\ \hline
+adversarial\_failure & -0.685 & -0.602 & -0.771 & -0.665 \\ \hline
+adversarial\_incorrect & -0.686 & -0.592 & -0.763 & -0.671 \\ \hline
+fail\_on\_bad\_path & -0.724 & -0.765 & -0.800 & -0.849 \\ \hline
+random\_fitness & -0.724 & -0.765 & -0.800 & -0.849
+
+
+\label{tbl:exp3-series} \\ \hline
+
+\end{longtable}
+
+\endgroup
+
+\colorbox{yellow}{remove.}\lipsum[1]
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_3_parallel_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_3_parallel_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_3_parallel_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_3_parallel_eca}
+    \end{minipage}
+\end{figure}
+
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_3_series_rnd.png}
+	\caption{asdf.}
+	\label{fig:test_exp_3_series_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.46\textwidth}
+        \centering
+        \includegraphics[width=0.96\textwidth]{test_exp_3_series_eca.png}
+	\caption{asdf.}
+	\label{fig:test_exp_3_series_eca}
+    \end{minipage}
+\end{figure}
+
+
+
+\section{Conclusions}
+
+\colorbox{yellow}{tbd.}
+
+\colorbox{yellow}{remove.}\lipsum
+
 
 \bibliography{mybib,cec}
 \bibliographystyle{ieeetr}

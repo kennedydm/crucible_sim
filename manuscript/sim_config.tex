@@ -1,90 +1,94 @@
-\begin{longtable}{| p{0.3\linewidth} | C{0.10\linewidth} | p{0.50\linewidth} | }
+\begin{longtable}{| p{0.28\linewidth} | C{0.08\linewidth} | p{0.27\linewidth} | p{0.27\linewidth} | }
 
 \caption{Simulation Configuration Parameters.}\\
 
 \hline
-\textbf{Parameter} & \textbf{Default} & \textbf{Description} \\ \hline
+\textbf{Parameter} & \textbf{Default} & \textbf{Description} & \textbf{Justification} \\ \hline
 \endfirsthead
 
 \hline
-\textbf{Parameter} & \textbf{Default} & \textbf{Description} \\ \hline
+\textbf{Parameter} & \textbf{Default} & \textbf{Description} & \textbf{Justification} \\ \hline
 \endhead
 
-\label{tbl:sim-config}
-% & & \\
-\cellcolor{lightgray} \textbf{Scenario Options} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
-structure\_seed & 0 & \\ \hline
-noise\_seed & 0 & \\ \hline
-num\_dimensions & 1 & \\ \hline
-num\_nodes & 1 & \\ \hline
-& & \\
-\cellcolor{lightgray} \textbf{Feature Parameters} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
-input\_noise\_sigma & 0.003 & \\ \hline
-model\_noise\_sigma & 0.01 & \\ \hline
-fidelity\_power & 1.5 & \\ \hline
-inversion\_rate & 0.3 & \\ \hline
-flattening\_rate & 0.3 & \\ \hline
-random\_fault\_rate & 0.02 & \\ \hline
-random\_infeasible\_rate & 0.02 & \\ \hline
-random\_fitness\_rate & 0.02 & \\ \hline
-fault\_degredation\_rate & 0.5 & \\ \hline
-constraint\_input\_margin & 0.05 & \\ \hline
-constraint\_optimal\_margin & 0.05 & \\ \hline
-min\_knots & 10 & \\ \hline
-max\_knots & 20 & \\ \hline
-min\_scale\_knots & 5 & \\ \hline
-max\_scale\_knots & 10 & \\ \hline
-min\_constraint\_knots & 10 & \\ \hline
-max\_constraint\_knots & 20 & \\ \hline
-max\_skew\_magnitude & 0.3 & \\ \hline
-knot\_feedback & 0.5 & \\ \hline
-adversarial\_offset\_mag & 0.1 & \\ \hline
-adversarial\_noise\_factor & 0.5 & \\ \hline
-adversarial\_failure\_factor & 0.5 & \\ \hline
-adversarial\_incorrect\_factor & 0.5 & \\ \hline
-adversarial\_feedback & 0.9 & \\ \hline
-min\_adversarial\_knots & 5 & \\ \hline
-max\_adversarial\_knots & 10 & \\ \hline
-dyn\_model\_inp\_vel\_mag & 0.05 & \\ \hline
-dyn\_model\_gen\_vel\_mag & 0.05 & \\ \hline
-dyn\_input\_map\_freq\_min & 1500 & \\ \hline
-dyn\_input\_map\_freq\_max & 2500 & \\ \hline
-dyn\_network\_map\_freq\_min & 1200 & \\ \hline
-dyn\_network\_map\_freq\_max & 1500 & \\ \hline
-dyn\_input\_shift\_freq\_min & 800 & \\ \hline
-dyn\_input\_shift\_freq\_max & 1200 & \\ \hline
-dyn\_input\_shift\_mag & 0.1 & \\ \hline
-node\_visit\_required\_rate & 0.1 & \\ \hline
-node\_random\_connection\_freq & 0.2 & \\ \hline
-& & \\
-\cellcolor{lightgray} \textbf{Feature Enablement} & \cellcolor{lightgray} & \cellcolor{lightgray} \\ \hline
-enable\_input\_map & TRUE & \\ \hline
-enable\_input\_shift & TRUE & \\ \hline
-enable\_input\_noise & TRUE & \\ \hline
-enable\_model\_noise & TRUE & \\ \hline
-enable\_adversarial & TRUE & \\ \hline
-enable\_adversarial\_noise & TRUE & \\ \hline
-enable\_adversarial\_offset & TRUE & \\ \hline
-enable\_adversarial\_failure & TRUE & \\ \hline
-enable\_adversarial\_incorrect & TRUE & \\ \hline
-enable\_dynamic & TRUE & \\ \hline
-enable\_dynamic\_spline & TRUE & \\ \hline
-enable\_dynamic\_input\_map & TRUE & \\ \hline
-enable\_dynamic\_input\_shift & TRUE & \\ \hline
-enable\_dynamic\_network & TRUE & \\ \hline
-enable\_constraints & TRUE & \\ \hline
-enable\_inversion & TRUE & \\ \hline
-enable\_flattening & TRUE & \\ \hline
-enable\_faults & TRUE & \\ \hline
-enable\_iso\_optimal & TRUE & \\ \hline
-enable\_skewing & TRUE & \\ \hline
-enable\_comp\_scale\_inputs & TRUE & \\ \hline
-enable\_total\_scale\_input & TRUE & \\ \hline
-enable\_random\_fitness & TRUE & \\ \hline
-enable\_node\_required\_visits & TRUE & \\ \hline
-enable\_fail\_on\_bad\_path & TRUE & \\ \hline
-quiet\_init & FALSE & \\ \hline
-save\_debug\_figs & FALSE & \\ \hline
+\multicolumn{4}{|l|}{\cellcolor{lightgray}\textbf{Scenario Options}} \\ \hline
+structure\_seed & 0 & Sim structure RNG seed & Zero initialized \\ \hline
+noise\_seed & 0 & Run variation RNG seed & Zero initialized \\ \hline
+num\_dimensions & 1 & Number of dimensions at each node & Minimum valid value \\ \hline
+num\_nodes & 1 & Number of nodes in the network & Minimum valid value \\ \hline
+
+\multicolumn{4}{|l|}{ } \\ \hline
+\multicolumn{4}{|l|}{\cellcolor{lightgray}\textbf{Feature Parameters}} \\ \hline
+input\_noise\_sigma & 0.0016 & Variation in decision variables & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+model\_noise\_sigma & 0.01 & Variation in model outputs & Limit 3 $\sigma$ spread to 0.06 \\ \hline
+fidelity\_power & 1.5 & Power of variable fidelity noise reduction & Desired convergence at fidelity level 10 \\ \hline
+flattening\_rate & 0.3 & Probability of enabling flattening on splines & Support landscape variation \\ \hline
+inversion\_rate & 0.3 & Probability of enabling inversion on splines & Support landscape variation \\ \hline
+random\_fault\_rate & 0.02 & Probability of returning a random fault result & To achieve 2\% on average \\ \hline
+random\_infeasible\_rate & 0.02 & Probability of returning a random infeasible result & To achieve 2\% on average \\ \hline
+random\_fitness\_rate & 0.02 & Probability of returning a random result & To achieve 2\% on average \\ \hline
+fault\_degredation\_rate & 0.37 & Probability of degradation instead of fault & Achieve $\Delta F_{50}$ of -0.010 during tuning \\ \hline
+fault\_max\_thresh & 0.77 & Upper limit to fault threshold & Achieve $\Delta F_{50}$ of -0.015 during tuning \\ \hline
+constraint\_input\_margin & 0.05 & Distance input must enter constraint to return infeasible & Large enough to prevent no feasible result \\ \hline
+constraint\_optimal\_margin & 0.05 & Distance away from optimal before applying constraint & Large enough to prevent no feasible result \\ \hline
+min\_knots & 10 & Minimum knots for governing and model splines & Support landscape variation \\ \hline
+max\_knots & 20 & Maximum knots for governing and model splines & Support landscape variation \\ \hline
+min\_scale\_knots & 5 & Minimum knots for scaling splines & Achieve non-linear scaling \\ \hline
+max\_scale\_knots & 10 & Maximum knots for scaling splines & Achieve non-linear scaling \\ \hline
+min\_constraint\_knots & 10 & Minimum knots for constraint splines & Support landscape variation \\ \hline
+max\_constraint\_knots & 20 & Maximum knots for constraint splines & Support landscape variation \\ \hline
+max\_skew\_magnitude & 0.3 & Maximum skew ratio for coupled model outputs & Meaningful reduction in axis alignment \\ \hline
+knot\_feedback & 0.5 & Temporal feedback in spline basic functions & Support landscape variation \\ \hline
+adversarial\_offset\_mag & 0.14 & Magnitude of input shifting during adversarial feedback & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+adversarial\_noise\_factor & 3 & Magnitude of noise amplification during adversarial feedback & Limit 3 $\sigma$ spread to 0.06 \\ \hline
+adversarial\_failure\_factor & 0.33 & Additional failure rate during adversarial feedback & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+adversarial\_incorrect\_factor & 3 & Magnitude of random result amplification during adversarial feedback & Achieve 6\% when near optimal \\ \hline
+adversarial\_feedback & 0.8 & Temporal feedback in fitness score for adversarial features & Demonstrated temporal memory \\ \hline
+min\_adversarial\_knots & 5 & Minimum knots for adversarial feature spline & Support non-linear spline landscape \\ \hline
+max\_adversarial\_knots & 10 & Maximum knots for adversarial feature spline & Support non-linear spline landscape \\ \hline
+dyn\_model\_inp\_vel\_mag & 0.0077 & Maximum input offset velocity magnitude per 1000 sim iterations & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+dyn\_model\_gen\_vel\_mag & 0.0077 & Maximum governing offset velocity magnitude per 1000 sim iterations & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+dyn\_input\_map\_freq\_min & 1050 & Minimum iterations before input re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
+dyn\_input\_map\_freq\_max & 1600 & Maximum iterations before input re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
+dyn\_network\_map\_freq\_min & 1050 & Minimum iterations before network re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
+dyn\_network\_map\_freq\_max & 1600 & Maximum iterations before network re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
+dyn\_input\_shift\_freq\_min & 1450 & Minimum iterations before input offset shift event & Achieve 3 to 5 events per 10k iterations \\ \hline
+dyn\_input\_shift\_freq\_max & 1700 & Maximum iterations before input offset shift event & Achieve 3 to 5 events per 10k iterations \\ \hline
+dyn\_input\_shift\_mag & 0.0071 & Maximum offset during input shift event & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+node\_visit\_required\_freq & 0.1 & Frequency of selecting a node for required visitation & Minimally demonstrated effect \\ \hline
+node\_random\_connection\_freq & 0.2 & Frequency of adding extra random node connections & Support non-linear node networks \\ \hline
+
+\multicolumn{4}{|l|}{ } \\ \hline
+\multicolumn{4}{|l|}{\cellcolor{lightgray}\textbf{Feature Enablement}} \\ \hline
+enable\_input\_map & TRUE & Enable the input mapping feature & Max difficulty by default \\ \hline
+enable\_input\_shift & TRUE & Enable the input shifting feature & Max difficulty by default \\ \hline
+enable\_input\_noise & TRUE & Enable the input noise feature & Max difficulty by default \\ \hline
+enable\_model\_noise & TRUE & Enable the model noise feature & Max difficulty by default \\ \hline
+enable\_adversarial & TRUE & Enable adversarial features & Max difficulty by default \\ \hline
+enable\_adversarial\_noise & TRUE & Enable adversarial noise feature & Max difficulty by default \\ \hline
+enable\_adversarial\_offset & TRUE & Enable adversarial offset feature & Max difficulty by default \\ \hline
+enable\_adversarial\_failure & TRUE & Enable adversarial failure feature & Max difficulty by default \\ \hline
+enable\_adversarial\_incorrect & TRUE & Enable adversarial incorrect feature & Max difficulty by default \\ \hline
+enable\_dynamic & TRUE & Enable dynamic feature & Max difficulty by default \\ \hline
+enable\_dynamic\_spline & TRUE & Enable dynamic spline feature & Max difficulty by default \\ \hline
+enable\_dynamic\_input\_map & TRUE & Enable dynamic input map feature & Max difficulty by default \\ \hline
+enable\_dynamic\_input\_shift & TRUE & Enable dynamic input shift feature & Max difficulty by default \\ \hline
+enable\_dynamic\_network & TRUE & Enable dynamic network feature & Max difficulty by default \\ \hline
+enable\_constraints & TRUE & Enable feasibility constraints feature & Max difficulty by default \\ \hline
+enable\_flattening & TRUE & Enable spline flattening feature & Max difficulty by default \\ \hline
+enable\_faults & TRUE & Enable fault features & Max difficulty by default \\ \hline
+enable\_inversion & TRUE & Enable spline inversion feature & Max difficulty by default \\ \hline
+enable\_iso\_optimal & TRUE & Enable iso optimal surface feature & Max difficulty by default \\ \hline
+enable\_skewing & TRUE & Enable coupled response skewing feature & Max difficulty by default \\ \hline
+enable\_comp\_scale\_inputs & TRUE & Enable composition function scaling inputs & Max difficulty by default \\ \hline
+enable\_total\_scale\_input & TRUE & Enable total node fitness scaling inputs & Max difficulty by default \\ \hline
+enable\_random\_fitness & TRUE & Enable random fitness result feature & Max difficulty by default \\ \hline
+enable\_node\_required\_visits & TRUE & Enable node visitation required feature & Max difficulty by default \\ \hline
+enable\_fail\_on\_bad\_path & TRUE & Enable executive failure on invalid network path & Max difficulty by default \\ \hline
+quiet\_init & FALSE & Print simulation construction log to console & Reduce console output by default \\ \hline
+save\_debug\_figs & FALSE & Save simulation construction debug figures & Not needed for normal runs
+
+
+\label{tbl:sim-config} \\ \hline
 
 
 \end{longtable}

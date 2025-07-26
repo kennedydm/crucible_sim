@@ -45,7 +45,7 @@ function sim_init(config::SimConfig)
             mdl = SimModel(sim.config, sim.rng)
             push!(node.models, mdl)
             if config.save_debug_figs
-                sim_plot_spline(mdl.gen_spline, "x", "g(x)", string("Model: ", i, " Governing Basic Spline"), debug_folder, string("node_", n, "_mdl_", i, "_gov_fun.png"))
+                sim_plot_spline(mdl.gov_spline, "x", "g(x)", string("Model: ", i, " Governing Basic Spline"), debug_folder, string("node_", n, "_mdl_", i, "_gov_fun.png"))
                 sim_plot_spline(mdl.mdl_spline, "u", "f(u)", string("Model: ", i, " Model Basic Spline"), debug_folder, string("node_", n, "_mdl_", i, "_mdl_fun.png"))
                 sim_plot_model(mdl, string("Model: ", i, " Response"), debug_folder, string("node_", n, "_mdl_", i, "_mdl_resp.png"))
             end
@@ -143,7 +143,7 @@ function sim_init(config::SimConfig)
             temp_deg_factor = zeros(Float64, num_dimensions)
             for i in 1:num_dimensions
                 temp_mode[i] = floor(rand(fault_rng) * rand(fault_rng) * max_comp_fun)
-                temp_thresh[i] = rand(fault_rng) * 0.25 + 0.05
+                temp_thresh[i] = sim.config.fault_max_thresh * 0.5 * (1.0 + rand(fault_rng))
                 temp_deg_factor[i] = rand(fault_rng)
                 if temp_deg_factor[i] > sim.config.fault_degredation_rate
                     temp_deg_factor[i] = 0.0
@@ -251,7 +251,7 @@ function sim_build_network(sim::SimStruct, temp_rng::Xoshiro)
     num_nodes = sim.config.num_nodes
 
     # visitation requirements - first x
-    sim.nodes_visit_req = sim.nominal_path[1:Int(ceil(abs(sim.config.node_visit_required_rate) * num_nodes))]
+    sim.nodes_visit_req = sim.nominal_path[1:Int(ceil(abs(sim.config.node_visit_required_freq) * num_nodes))]
     if sim.config.enable_node_required_visits
         sim_log(sim.io, sim.config.quiet_init, string("- Required Visits: ", sim.nodes_visit_req))
     end

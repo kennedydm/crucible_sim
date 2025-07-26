@@ -10,9 +10,9 @@
 \textbf{Req No.} & \textbf{Requirement} & \textbf{Justification} \\ \hline
 \endhead
 
-\label{tbl:sim-reqs}
-% & & \\
-\cellcolor{lightgray} & \cellcolor{lightgray} \textbf{Architecture Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Architecture Requirements}} \\ \hline
+
 1 & Written in a compiled language & \\ \hline
 2 & Problem scenarios are random & \\ \hline
 3 & Results are repeatable & \\ \hline
@@ -34,8 +34,10 @@
 19 & Support for dynamic problems & \\ \hline
 20 & Support for adversarial behavior & \\ \hline
 21 & Support for semi-cooperative behavior & \\ \hline
- &  & \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Composition Function Requirements} & \cellcolor{lightgray} \\ \hline
+ 
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Composition Function Requirements}} \\ \hline
+
 22 & Create governing functions using basic functions & \\ \hline
 23 & Create model functions using basic functions & \\ \hline
 24 & Create model responses by mapping inputs to model functions through governing functions & \\ \hline
@@ -50,8 +52,10 @@
 33 & Map inputs to constraint functions through governing equations & \\ \hline
 34 & Support feasible and infeasible input regions & \\ \hline
 35 & Support for separable and non-separable constraints & \\ \hline
- &  &  \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Network Pathfinding Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Network Pathfinding Requirements}} \\ \hline
+
 36 & Support pathfinding through networked nodes & \\ \hline
 37 & Generate composition functions at each node & \\ \hline
 38 & Calculate a node single target fitness score from a weighted sum of composition functions & \\ \hline
@@ -59,13 +63,17 @@
 40 & Support for network path feasibility based on network trajectory & \\ \hline
 41 & Support for interactions between node importance and network path trajectory & increase weighting linear by visitation\\ \hline
 42 & Support network node visitation requirements & \\ \hline
- &  & \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Node Iso-Optimal Surface Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Node Iso-Optimal Surface Requirements}} \\ \hline
+
 43 & Support for a global iso-optimal surface & Facilitate niching optimization methods\\ \hline
 44 & Support for disconnected iso-optimal regions & Facilitate niching optimization methods\\ \hline
 45 & Support for scalable number of local iso-optimal surfaces & Facilitate niching optimization methods and scalable complexity\\ \hline
- &  &  \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Stochastic Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Stochastic Requirements}} \\ \hline
+
 46 & Support for stochastic inputs & \\ \hline
 47 & Support for stochastic responses from deterministic inputs & \\ \hline
 48 & Randomness is seeded & Required for repeatable results\\ \hline
@@ -74,24 +82,32 @@
 51 & Support for randomized input mapping to composition functions & \\ \hline
 52 & Support for stochastic dynamic discrete event timing & \\ \hline
 53 & Support for stationary and non-stationary distributions & \\ \hline
- &  &  \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Dynamic Behavior Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Dynamic Behavior Requirements}} \\ \hline
+
 54 & Support for discrete events based on number of simulation iterations & \\ \hline
 55 & Support for discrete network path configuration change events & \\ \hline
 56 & Support for continuously changing basic function landscapes based on number of simulation iterations & \\ \hline
 57 & Support for continuously changing constraints based on number of simulation iterations & \\ \hline
 58 & Support discrete objective and constraint landscape change events & \\ \hline
- &  &  \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Adversarial Behavior Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Adversarial Behavior Requirements}} \\ \hline
+
 59 & Support for moving optimal location as a function of previous fitness score & \\ \hline
 60 & Support for variable frequency of semi-cooperative behavior as a function of previous fitness score & \\ \hline
- &  &  \\ \hline
-\cellcolor{lightgray}  & \cellcolor{lightgray} \textbf{Semi-Cooperative Behavior Requirements} & \cellcolor{lightgray} \\ \hline
+
+\multicolumn{3}{|l|}{ } \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Semi-Cooperative Behavior Requirements}} \\ \hline
+
 61 & Support for partial degradation and complete failure results & \\ \hline
 62 & Support for deterministic failures & \\ \hline
 63 & Support for separable and non-separable failure regions & \\ \hline
 64 & Support for pathfinding based failures & \\ \hline
 65 & Support for random incorrect fitness result & \\ \hline
-66 & Support for random incorrect feasibility result & \\ \hline
+66 & Support for random incorrect feasibility result & 
+
+\label{tbl:sim-reqs} \\ \hline
 
 \end{longtable}

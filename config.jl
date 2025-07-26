@@ -9,6 +9,7 @@ mutable struct SimConfig
     num_dimensions              :: Int
     num_nodes                   :: Int
     #
+    iso_optimal_limit           :: Float64
     input_noise_sigma           :: Float64
     model_noise_sigma           :: Float64
     fidelity_power              :: Float64
@@ -18,6 +19,7 @@ mutable struct SimConfig
     random_infeasible_rate      :: Float64
     random_fitness_rate         :: Float64
     fault_degredation_rate      :: Float64
+    fault_max_thresh            :: Float64
     constraint_input_margin     :: Float64
     constraint_optimal_margin   :: Float64
     min_knots                   :: Int
@@ -38,7 +40,7 @@ mutable struct SimConfig
     max_adversarial_knots       :: Int
     #
     dyn_model_inp_vel_mag       :: Float64
-    dyn_model_gen_vel_mag       :: Float64
+    dyn_model_gov_vel_mag       :: Float64
     dyn_input_map_freq_min      :: Int
     dyn_input_map_freq_max      :: Int
     dyn_network_map_freq_min    :: Int
@@ -47,7 +49,7 @@ mutable struct SimConfig
     dyn_input_shift_freq_max    :: Int
     dyn_input_shift_mag         :: Float64
     #
-    node_visit_required_rate    :: Float64
+    node_visit_required_freq    :: Float64
     node_random_connection_freq :: Float64
     #
     enable_input_map            :: Bool
@@ -90,15 +92,17 @@ mutable struct SimConfig
         ret.num_dimensions = 1
         ret.num_nodes = 1
         #
-        ret.input_noise_sigma = 0.003
+        ret.iso_optimal_limit = 0.83
+        ret.input_noise_sigma = 0.0016
         ret.model_noise_sigma = 0.01
         ret.fidelity_power = 1.5
-        ret.inversion_rate = 0.3
         ret.flattening_rate = 0.3
+        ret.inversion_rate = 0.3
         ret.random_fault_rate = 0.02
         ret.random_infeasible_rate = 0.02
         ret.random_fitness_rate = 0.02
-        ret.fault_degredation_rate = 0.5
+        ret.fault_degredation_rate = 0.37
+        ret.fault_max_thresh = 0.77
         ret.constraint_input_margin = 0.05
         ret.constraint_optimal_margin = 0.05
         ret.min_knots = 10
@@ -109,27 +113,27 @@ mutable struct SimConfig
         ret.max_constraint_knots = 20
         ret.max_skew_magnitude = 0.3
         ret.knot_feedback = 0.5
-        ret.adversarial_offset_mag = 0.1
-        ret.adversarial_noise_factor = 0.5
-        ret.adversarial_failure_factor = 0.5
-        ret.adversarial_incorrect_factor = 0.5
-        ret.adversarial_feedback = 0.9
+        ret.adversarial_offset_mag = 0.14
+        ret.adversarial_noise_factor = 3.0
+        ret.adversarial_failure_factor = 0.33
+        ret.adversarial_incorrect_factor = 3.0
+        ret.adversarial_feedback = 0.8
         ret.min_adversarial_knots = 5
         ret.max_adversarial_knots = 10
-        ret.dyn_model_inp_vel_mag = 0.05 # per 1000 iterations
-        ret.dyn_model_gen_vel_mag = 0.05 # per 1000 iterations
-        ret.dyn_input_map_freq_min = 1500
-        ret.dyn_input_map_freq_max = 2500
-        ret.dyn_network_map_freq_min = 1200
-        ret.dyn_network_map_freq_max = 1500
-        ret.dyn_input_shift_freq_min = 800
-        ret.dyn_input_shift_freq_max = 1200
-        ret.dyn_input_shift_mag = 0.1
-        ret.node_visit_required_rate = 0.1
+        ret.dyn_model_inp_vel_mag = 0.0077 # per 1000 iterations
+        ret.dyn_model_gov_vel_mag = 0.0077 # per 1000 iterations
+        ret.dyn_input_map_freq_min = 1050
+        ret.dyn_input_map_freq_max = 1600
+        ret.dyn_network_map_freq_min = 1050
+        ret.dyn_network_map_freq_max = 1600
+        ret.dyn_input_shift_freq_min = 1450
+        ret.dyn_input_shift_freq_max = 1700
+        ret.dyn_input_shift_mag = 0.0071
+        ret.node_visit_required_freq = 0.1
         ret.node_random_connection_freq = 0.2
         #
-        ret.enable_input_shift = true
         ret.enable_input_map = true
+        ret.enable_input_shift = true
         ret.enable_input_noise = true
         ret.enable_model_noise = true
         ret.enable_adversarial = true
@@ -171,6 +175,8 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- num_dimensions                 : ", config.num_dimensions                  ))
     sim_log(io, config.quiet_init, string("- num_nodes                      : ", config.num_nodes                       ))
     #       
+    
+    sim_log(io, config.quiet_init, string("- iso_optimal_limit              : ", config.iso_optimal_limit               ))
     sim_log(io, config.quiet_init, string("- input_noise_sigma              : ", config.input_noise_sigma               ))
     sim_log(io, config.quiet_init, string("- model_noise_sigma              : ", config.model_noise_sigma               ))
     sim_log(io, config.quiet_init, string("- fidelity_power                 : ", config.fidelity_power                  ))
@@ -180,6 +186,7 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- random_infeasible_rate         : ", config.random_infeasible_rate          ))
     sim_log(io, config.quiet_init, string("- random_fitness_rate            : ", config.random_fitness_rate             ))
     sim_log(io, config.quiet_init, string("- fault_degredation_rate         : ", config.fault_degredation_rate          ))
+    sim_log(io, config.quiet_init, string("- fault_max_thresh               : ", config.fault_max_thresh                ))
     sim_log(io, config.quiet_init, string("- constraint_input_margin        : ", config.constraint_input_margin         ))
     sim_log(io, config.quiet_init, string("- constraint_optimal_margin      : ", config.constraint_optimal_margin       ))
     sim_log(io, config.quiet_init, string("- min_knots                      : ", config.min_knots                       ))
@@ -198,7 +205,7 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- min_adversarial_knots          : ", config.min_adversarial_knots           ))
     sim_log(io, config.quiet_init, string("- max_adversarial_knots          : ", config.max_adversarial_knots           ))
     sim_log(io, config.quiet_init, string("- dyn_model_inp_vel_mag          : ", config.dyn_model_inp_vel_mag           ))
-    sim_log(io, config.quiet_init, string("- dyn_model_gen_vel_mag          : ", config.dyn_model_gen_vel_mag           ))
+    sim_log(io, config.quiet_init, string("- dyn_model_gov_vel_mag          : ", config.dyn_model_gov_vel_mag           ))
     sim_log(io, config.quiet_init, string("- dyn_input_map_freq_min         : ", config.dyn_input_map_freq_min          ))
     sim_log(io, config.quiet_init, string("- dyn_input_map_freq_max         : ", config.dyn_input_map_freq_max          ))
     sim_log(io, config.quiet_init, string("- dyn_network_map_freq_min       : ", config.dyn_network_map_freq_min        ))
@@ -206,7 +213,7 @@ function config_log_inputs(io::IOStream, config::SimConfig)
     sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_min       : ", config.dyn_input_shift_freq_min        ))
     sim_log(io, config.quiet_init, string("- dyn_input_shift_freq_max       : ", config.dyn_input_shift_freq_max        ))
     sim_log(io, config.quiet_init, string("- dyn_input_shift_mag            : ", config.dyn_input_shift_mag             ))
-    sim_log(io, config.quiet_init, string("- node_visit_required_rate       : ", config.node_visit_required_rate        ))
+    sim_log(io, config.quiet_init, string("- node_visit_required_freq       : ", config.node_visit_required_freq        ))
     sim_log(io, config.quiet_init, string("- node_random_connection_freq    : ", config.node_random_connection_freq     ))
 
     #       

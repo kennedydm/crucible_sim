@@ -14,7 +14,7 @@ mutable struct SimCompositionFunction
         ret = new()
         ret.num_models = length(map_in)
         ret.model_map = map_in
-        ret.iso_optimal_limit = (0.8 + 0.2 * rand(rng))
+        ret.iso_optimal_limit = config.iso_optimal_limit + (1.0 - config.iso_optimal_limit) * rand(rng)
         ret.comp_weight = rand(rng) * 0.95 + 0.05
         ret.scale_spline = SimSpline(config, rng, rand(rng, config.min_scale_knots:config.max_scale_knots))
         ret.scale_input_idx = 1
