@@ -4,10 +4,9 @@
 \usepackage{graphicx}
 \usepackage[table]{xcolor}
 \usepackage{longtable,array}
-\usepackage{lipsum}
 \usepackage{float}
 \usepackage{amsmath}
-\usepackage{lipsum}
+
 
 \graphicspath{{figs/}}
 
@@ -157,29 +156,76 @@ Table: \ref{tbl:sim-reqs}
 
 \section{Simulation Architecture}
 
-The Crucible simulation is written in the Julia \colorbox{yellow}{[REF]} programming language to provide compiled performance with repeatable environments (Req. 1, 3).
+The Crucible simulation is written in the Julia \colorbox{yellow}{[REF]} programming language to provide compiled performance with repeatable environments (Req. 1, 3). Figure \ref{fig:sim_loops} provides a high level overview of the simulation public interfaces. Simulation configuration is performed by creating a configuration object using the SimConfig function. This object is used to enable simulation features and set feature parameters (Req. 9, 10). A comprehensive list of configuration parameters with setpoints and justification is provided in Section \ref{configparams}. Once the configuration object has been constructed the user can override settings as desired. Table \ref{tbl:sim-if} provides a description of important simulation structures and public interface functions. The hierarchical relationship between simulation structures is illustrated in Figure \ref{fig:sim_structs}. The only simulation structure that the user interacts with is the SimConfig structure.
 
-Simulation configuration is performed by creating a configuration object using the SimConfig() function. This object is used to enable simulation features and set feature parameters (Req. 9, 10). A comprehensive list of configuration parameters with setpoints and justification is provided in Section \ref{configparams}.
+\begin{table}[H]
+	\centering
+	\caption{Crucible Simulation Interface and Structure Descriptions}
+	\label{tbl:sim-if}
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.24\linewidth} | C{0.13\linewidth} | p{0.53\linewidth} | }
+	\hline
+	\textbf{Name} & \textbf{File} & \textbf{Description} \\ \hline
+	
+    \multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Public Interface}} \\ \hline
+SimConfig() & config.jl & Returns a default initialized simulation configuration object \\ \hline
+sim\_init() & initialize.jl & Use to construct the simulation give a configuration object \\ \hline
+sim\_eval() & evaluate.jl & Used to evaluate fitness for a given input array, network path, and fidelity \\ \hline
 
-Scenario level randomization is controlled by seeding an Xoshiro random number stream from the Random package using the scenario seed configuration parameter (Req. 3, 48). This stream is used for constructing the simulation prior to execution (Req. 2).
+\multicolumn{3}{|l|}{\textbf{ }} \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{lightgray}\textbf{Crucible Sim Structures}} \\ \hline
+SimStruct & sim\_obj.jl & Container for scenario, configuration, and adversarial state \\ \hline
+SimConfig & config.jl & Contains settings for all configuration parameters \\ \hline
+SimCompositionFunction & composition.jl & Composition model mapping, scale spline, and dimension coupling pairs \\ \hline
+SimCouplingRegion & coupling.jl & Pair mapping, constraint spline, and skew magnitude \\ \hline
+SimFault & fault.jl & Fault threshold and degradation factor \\ \hline
+SimFlatten & fault.jl & Location for model response flattening regions \\ \hline
+SimInvert & fault.jl & Location for model response inversion regions \\ \hline
+SimModel & model.jl & Contains governing and model function splines, dynamic velocity magnitudes, and flattening and inversion data \\ \hline
+SimNode & node.jl & Holds node models, composition functions, fault, and scaling spline \\ \hline
+SimSpline & spline.jl & Constructor and evaluator for spline basic functions \\ \hline
 
-Run level randomization is controlled by seeding another Xoshiro random number stream using the noise seed configuration parameter plus the run iteration (Req. 3, 48).
+	\end{tabular}
+\end{table}
 
-Due to dynamic and adversarial simulation features, each simulation run is coupled to the previous run and cannot be parallelized. The previous run score and number of iterations is stored as simulation state between runs. However, simulations with different starting noise seeds or starting input values can be parallelized to support niching optimization methods and validation of results.
 
-The number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter after the simulation is constructed.
 
-A simulation run is performed by calling the sim\_eval function with the simulation object, the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1], with 1.0 being optimal (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6).
+\begin{figure}
+    \centering
+    \includegraphics[width=0.35\textwidth]{sim_loops.png}
+    \caption{High level overview of important simulation interfaces for setting up an experiment and evaluating fitness using an optimizer.}
+    \label{fig:sim_loops}
+\end{figure}
 
-After each simulation run, the simulation object parameter num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7).
 
-During simulation construction a log of the scenario features and configuration parameters is written to the filename provided in the logfile configuration parameter or the file "logfile.txt" by default (Req. 8).
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{sim_structs.png}
+    \caption{Hierarchical relationship diagram of important simulation structures. Names in brackets indicate arrays. }
+    \label{fig:sim_structs}
+\end{figure}
 
-The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: $y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand()$. The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped [0.0, 1.0].
 
+The sim\_init function constructs the simulation using the provided configuration object. During simulation construction a log of the scenario features and configuration parameters is written to the filename provided in the logfile configuration parameter or the file "logfile.txt" by default (Req. 8). Additional debug figures can be created by enabling the save\_debug\_figs option. After the simulation is constructed, the number of design inputs required for evaluating the simulation scenario is stored in the num\_inputs simulation object parameter.
+
+Scenario level randomization is controlled by seeding an Xoshiro random number stream from the Random package using the scenario seed configuration parameter (Req. 3, 48). This stream is used for constructing the simulation prior to execution (Req. 2). Run level randomization is controlled by seeding another Xoshiro random number stream using the noise seed configuration parameter plus the run iteration (Req. 3, 48).
+
+A simulation run is performed by calling the sim\_eval function with the simulation object, the design parameters, the desired network path (Req. 13), and a fidelity level (Req. 17). This function reports a single value for the fitness score (Req. 5, 15) in the range [0, 1), with 1.0-$\epsilon$ being optimal, where $\epsilon$ is the minimum 64 bit floating point value (Req. 16). In the event of an infeasible solution, the fitness score is reported as NaN (Req. 6). An example simulation input array is provided in Figure \ref{fig:input_matrix}. Each input value is continuous in the range [0, 1). This example shows two nodes, each with five dimensions. Each node contains two composition functions, contain constraint pairs. Each composition function and each node have an additional scaling function input value. The first block of inputs are design values, and the last two inputs are used to determine the attempted network path. Details on all of these features are provided in the sections that follow.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.96\textwidth]{input_matrix.png}
+    \caption{Example input array with sixteen design inputs and two network path inputs. All values are continuous in the range [0, 1). Descriptions of the features in each column are provided in Section \ref{sec:simfeat}. }
+    \label{fig:input_matrix}
+\end{figure}
+
+After each simulation run, the simulation object parameter num\_iterations contains the current run iteration and num\_function\_evals contains an updated cumulative number of function evaluations since the object was created (Req. 7). Due to dynamic and adversarial simulation features, each simulation run is coupled to the previous run and cannot be parallelized. The previous run score and number of iterations is stored as simulation state between runs. However, simulations with different starting noise seeds or starting input values can be parallelized to support niching optimization methods and validation of results.
+
+The foundational element for creating landscapes in the simulation are spline basic functions. Spline basic functions are randomly generated splines using the scenario seed (Req. 2). The number of knots in the spline are randomly chosen using the min and max knots input parameters. Knots are added in series using the equation: $y[1] = rand() - rand(); y[i] = y[i-1] * knot\_feedback + rand() - rand()$. The knot\_feedback parameter is a value between 0 and 1 that determines how autocorrelated each knot is to the previous knot. When querying a spline function, the input and output ranges are clamped in the range [0.0, 1.0]. Spline basic functions are used throughout the simulation for creating governing, model, scaling, constraint, and adversarial functions as described in the following sections.
 
 
 \section{Simulation Features}
+\label{sec:simfeat}
 
 \subsection{Governing Functions and Model Functions}
 
@@ -191,15 +237,15 @@ Flattening may occur when a governing or model function is clamped in the range 
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_gov_fun.png}
+        \includegraphics[width=0.97\textwidth]{basic_eq_mdl_1_gov_fun.png}
         \caption{Governing function created using a spline basic function.}
         \label{fig:basic_eq_mdl_1_gov_fun}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_mdl_fun.png}
+        \includegraphics[width=0.97\textwidth]{basic_eq_mdl_1_mdl_fun.png}
         \caption{Model function created using a spline basic function.}
         \label{fig:basic_eq_mdl_1_mdl_fun}
     \end{minipage}
@@ -209,15 +255,15 @@ Flattening may occur when a governing or model function is clamped in the range 
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{basic_eq_mdl_1_mdl_resp.png}
+        \includegraphics[width=0.97\textwidth]{basic_eq_mdl_1_mdl_resp.png}
         \caption{Model response landscape created by mapping design variable input to model function input through a governing function.}
         \label{fig:basic_eq_mdl_1_mdl_resp}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{landscape_mdl_19_mdl_resp.png}
+        \includegraphics[width=0.97\textwidth]{landscape_mdl_19_mdl_resp.png}
         \caption{Example model response with many combined features: smooth, discontinuous, narrow and wide basins, shallow and deep basins, multi-modal, flattened, non-linear, and deceptive basins.}
         \label{fig:landscape_mdl_19_mdl_resp}
     \end{minipage}
@@ -227,15 +273,15 @@ Flattening may occur when a governing or model function is clamped in the range 
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{flat_mdl_1_mdl_resp_flat.png}
+        \includegraphics[width=0.97\textwidth]{flat_mdl_1_mdl_resp_flat.png}
         \caption{Example random flattening injected using the enable\_flattening configuration parameter.}
         \label{fig:flat_mdl_1_mdl_resp_flat}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{invert_mdl_1_mdl_resp_invert.png}
+        \includegraphics[width=0.97\textwidth]{invert_mdl_1_mdl_resp_invert.png}
         \caption{Example random discontinuity injected using the enable\_inversion configuration parameter.}
         \label{fig:invert_mdl_1_mdl_resp_invert}
     \end{minipage}
@@ -253,15 +299,15 @@ Figure \ref{fig:2d_const_3_1_base} illustrates an example composition lanscape o
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{2d_const_3_1_base.png}
+        \includegraphics[width=0.97\textwidth]{2d_const_3_1_base.png}
         \caption{Example composition function response of two models.}
         \label{fig:2d_const_3_1_base}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso.png}
+        \includegraphics[width=0.97\textwidth]{2d_const_3_1_iso.png}
         \caption{Composition function response with added iso-optimal surface feature.}
         \label{fig:2d_const_3_1_iso}
     \end{minipage}
@@ -280,15 +326,15 @@ A couple margins are included to prevent a scenario in which there are no feasib
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso_skew.png}
+        \includegraphics[width=0.97\textwidth]{2d_const_3_1_iso_skew.png}
         \caption{Composition function response with added wrapped skewing feature to create non-separability and non-axis alignment.}
         \label{fig:2d_const_3_1_iso_skew}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{2d_const_3_1_iso_skew_const.png}
+        \includegraphics[width=0.97\textwidth]{2d_const_3_1_iso_skew_const.png}
         \caption{Composition function response with added feasibility constraint feature.}
         \label{fig:2d_const_3_1_iso_skew_const}
     \end{minipage}
@@ -315,15 +361,15 @@ Lastly, the simulation supports a dynamic discrete event feature to periodically
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_dyn_model.png}
+        \includegraphics[width=0.97\textwidth]{test_dyn_model.png}
     \caption{Example model response showing continuous dynamic spline landscape change as a function of simulation iterations.}
     \label{fig:test_dyn_model}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_dyn_input_shift.png}
+        \includegraphics[width=0.97\textwidth]{test_dyn_input_shift.png}
     \caption{Example model response with discrete dynamic input shift biasing events as a function of simulation iterations.}
     \label{fig:test_dyn_input_shift}
     \end{minipage}
@@ -332,15 +378,15 @@ Lastly, the simulation supports a dynamic discrete event feature to periodically
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_dyn_map.png}
+        \includegraphics[width=0.97\textwidth]{test_dyn_map.png}
     \caption{Example model response with discrete design input re-mapping event as a function of simulation iterations.}
     \label{fig:test_dyn_map}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_dyn_map_spline.png}
+        \includegraphics[width=0.97\textwidth]{test_dyn_map_spline.png}
     \caption{Example model response that combines a discrete input re-mapping event with continuous dynamic spline landscape changes as a function of simulation iterations.}
     \label{fig:test_dyn_map_spline}
     \end{minipage}
@@ -356,15 +402,15 @@ Noise can be added to the design input values to create uncertainty into the gen
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{comp2d_input_noise.png}
+        \includegraphics[width=0.97\textwidth]{comp2d_input_noise.png}
         \caption{Stochastic composition function response created by noise added to input dimensions.}
         \label{fig:comp2d_input_noise}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{comp2d_model_noise.png}
+        \includegraphics[width=0.97\textwidth]{comp2d_model_noise.png}
         \caption{Stochastic composition function response created by noise added to model responses.}
         \label{fig:comp2d_model_noise}
     \end{minipage}
@@ -379,15 +425,15 @@ When evaluating simulation fitness, the optimer must include an integer paramete
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_fidelity_var_1.png}
+        \includegraphics[width=0.97\textwidth]{test_fidelity_var_1.png}
         \caption{Demonstration of model fitness convergence by increasing model fidelity from one to ten.}
         \label{fig:test_fidelity_var_1}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_fidelity_var_2.png}
+        \includegraphics[width=0.97\textwidth]{test_fidelity_var_2.png}
         \caption{Example model response while increasing model fidelity from one to ten as design input variable x is increased from zero to one.}
         \label{fig:test_fidelity_var_2}
     \end{minipage}
@@ -403,15 +449,15 @@ During scenario creation, some input dimensions are randomly selected to include
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{fault_mdl_5_mdl_resp_fault_degrade.png}
+        \includegraphics[width=0.97\textwidth]{fault_mdl_5_mdl_resp_fault_degrade.png}
 	\caption{Example model fault resulting in degraded response.}
 	\label{fig:fault_mdl_5_mdl_resp_fault_degrade}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{fault_mdl_8_mdl_resp_fault_0.29.png}
+        \includegraphics[width=0.97\textwidth]{fault_mdl_8_mdl_resp_fault_0.29.png}
 	\caption{Example model complete failure triggered at locations where the model response falls below 0.29.}
 	\label{fig:fault_mdl_8_mdl_resp_fault_029}
     \end{minipage}
@@ -431,15 +477,15 @@ The second method for adversarial feedback is by scaling the frequency of random
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{comp2d_inp_model_noise_faults.png}
+        \includegraphics[width=0.97\textwidth]{comp2d_inp_model_noise_faults.png}
 	\caption{Example combining a two-dimensional composition function with input and model uncertainty, random failures and infeasibility reports, as well as executive failure regions.}
 	\label{fig:comp2d_inp_model_noise_faults}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{out_adversarial_fun.png}
+        \includegraphics[width=0.97\textwidth]{out_adversarial_fun.png}
 	\caption{Construction of adversarial scaling factor by weighted sum of spline basic function and rolling fitness score.}
 	\label{fig:out_adversarial_fun}
     \end{minipage}
@@ -447,15 +493,15 @@ The second method for adversarial feedback is by scaling the frequency of random
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_adv_offset_l2r.png}
+        \includegraphics[width=0.97\textwidth]{test_adv_offset_l2r.png}
 	\caption{Application of adversarial scaling factor to model input bias while scanning input dimension x from zero to one (left to right) illustrating the temporal relationship in adversarial fitness memory.}
 	\label{fig:test_adv_offset_l2r}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_adv_offset_r2l.png}
+        \includegraphics[width=0.97\textwidth]{test_adv_offset_r2l.png}
 	\caption{Application of adversarial scaling factor to model input bias while scanning input dimension x from one to zero (right to left) illustrating the temporal relationship in adversarial fitness memory.}
 	\label{fig:test_adv_offset_r2l}
     \end{minipage}
@@ -463,15 +509,15 @@ The second method for adversarial feedback is by scaling the frequency of random
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_adv_fail.png}
+        \includegraphics[width=0.97\textwidth]{test_adv_fail.png}
 	\caption{Example showing an elevation in random failure events due to adversarial response when the rolling fitness score is near optimal.}
 	\label{fig:test_adv_fail}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_adv_noise.png}
+        \includegraphics[width=0.97\textwidth]{test_adv_noise.png}
 	\caption{Example showing an elevation in input and model noise due to adversarial response when the rolling fitness score is near optimal.}
 	\label{fig:test_adv_noise}
     \end{minipage}
@@ -496,7 +542,7 @@ The simulation can enforce that certain nodes in the network are visited or else
 
 \section{Experimentation Method}
 
-This section describes a series of experiments for tuning the configuration parameters and comparing optimization performance using the Crucible Simulation. Depending on the experiment, different optimization strategies are used. These include the Evolutionary Centers Algorithm (ECA), Particle Swarm Optimization (PSO), and Simulated Annealing (SA) optimizers from the Metaheuristics.jl package \colorbox{yellow}{[REF]}, as well as Random Search (RND) as described below.
+This section describes a series of experiments for tuning the configuration parameters and comparing optimization performance using the Crucible Simulation. Depending on the experiment, different optimization strategies were used. These included the Evolutionary Centers Algorithm (ECA), Particle Swarm Optimization (PSO), and Simulated Annealing (SA) optimizers from the Metaheuristics.jl package \colorbox{yellow}{[REF]} using a population size of one-hundred for each, as well as Random Search (RND) as described below. This population size was used for each algorithm for consistency and chosen because one-hundred was used in the Metaheuristics.jl documentation examples for PSO and SA. The fitness tolerance was set to 1e-5, and the function call limit and number of iterations was set to ten-thousand. All other options were defaults, no hyper-parameter optimization was performed.
 
 During each simulation iteration, the designated optimzer provides an array of values to a callback function with the length of the array equal to the number of simulation inputs (sim.num\_inputs) plus the number of nodes (sim.config.num\_nodes). The first portion of the inputs pass through as design variables. The node inputs are sorted by value and the resulting index order is provided as the desired network path thus allowing a continuous input space for a mixed-integer optimization problem. The simulation fitness is evaluated using the design inputs, network path, and fidelity level 1 (lowest). Next, the number of simulation iterations is decremented and the adversarial feedback is temporarily set to 1.0 before running the simulation again with the best known inputs thus far and saving the regression fitness. This allows the experiment to measure the quality of the best known inputs at each iteration without affecting dynamic and adversarial features. If the current iteration score is higher than this regression fitness then the current iteration inputs are set as the new best known inputs. After each iteration, the best known fitness is appended to a result array.
 
@@ -510,12 +556,11 @@ When Random Search is used, all design variables and node inputs are chosen from
 
 Prior to running the performance comparison experiments, the simulation configuration parameters were tuned. As with the comparison experiments, ten replicates of thirty scenario seeds for ten-thousand iterations were used during each tuning cycle. Parameters were tuned to allow features to have an observable impact without overly burdening or improving performance. The descriptions of parameters with setpoint justification is provided below in Table \ref{tbl:sim-config}.
 
-Before tuning, the following inputs were explicitly selected without tuning: model noise sigma, fidelity power, flattening rate, inversion rate, random fault rate, random infeasible rate, random fitness rate, constraint input margin, constraint optimal margin, min knots, max knots, min scale knots, max scale knots, min constraint knots, max constraint knots, max skew magnitude, knot feedback, adversarial noise factor, adversarial incorrect factor, adversarial feedback, min adversarial knots, max adversarial knots,
-dyn input map freq min, dyn input map freq max, dyn network map freq min, dyn network map freq max, dyn input shift freq min, dyn input shift freq max, node visit required freq, and node random connection freq.
+Before tuning, the following inputs were explicitly set as described in Table \ref{tbl:sim-config}: model noise sigma, fidelity power, flattening rate, inversion rate, random fault rate, random infeasible rate, random fitness rate, constraint input margin, constraint optimal margin, min knots, max knots, min scale knots, max scale knots, min constraint knots, max constraint knots, max skew magnitude, knot feedback, adversarial noise factor, adversarial incorrect factor, adversarial feedback, min adversarial knots, max adversarial knots, dyn input map freq min, dyn input map freq max, dyn network map freq min, dyn network map freq max, dyn input shift freq min, dyn input shift freq max, node visit required freq, and node random connection freq.
 
 Next, feature configuration parameters were tuned by running the designated experiment size using scenarios with five nodes of five dimensions. For each configuration parameter, a baseline $F_{50}$ score was calculated with no effect, then bisection search was used to find a parameter setpoint that reached a specific $F_{50}$ performance delta. This was chosen to balance the effect of different features on overall performance. After tuning, the parameters place the 90th percentile fitness ($F_{90}$) score just above 0.0 when all features were enabled in the four-dimension-four-node scenarios of Experiment 3, thereby providing wide comparative illustration of the compounding effect of each feature on optimizer performance.
 
-The first parameter tuned was the iso optimal threshold. As the threshold is reduce from 1.0, the iso optimal surface area grows making solutions easier to find. Bisection search was used to improve the $F_{50}$ score to place it at 0.70. For the remaining parameters, the baseline score included the following enabled features: input mapping, input shifting, composition function scaling, node total fitness scaling, spline flattening, spline inversion, model noise, spline couple pair skewing, and node visitation requirements. The following parameters were tuned to create a -0.02 $\Delta F_{50}$: input noise sigma, dyn model inp vel mag, dyn model gov vel mag, dyn inp shift, adversarial offset mag, and adversarial failure factor. Lastly, due to the interaction between fault threshold and fault degredation rate, fault max thresh was first tuned to create a -0.015 $\Delta F_{50}$ with degredation rate set to 0.0. Then fault degredation rate was increased to create a +0.005 $\Delta F_{50}$, this way the combination of inputs resulted in an overall delta of only -0.01.
+The first parameter tuned was the iso optimal threshold. As the threshold is reduce from 1.0, the iso optimal surface area grows making solutions easier to find. Bisection search was used to improve the $F_{50}$ score to place it at 0.70. For the remaining parameters, the baseline score included the following enabled features: input mapping, input shifting, composition function scaling, node total fitness scaling, spline flattening, spline inversion, model noise, spline couple pair skewing, and node visitation requirements. The following parameters were tuned to create a -0.02 $\Delta F_{50}$: input noise sigma, dyn model inp vel mag, dyn model gov vel mag, dyn inp shift, adversarial offset mag, and adversarial failure factor. Adversarial features were tuned with only iso optimal enabled to improve performance so that the effect is more visible. Lastly, due to the interaction between fault threshold and fault degredation rate, fault max thresh was first tuned to create a -0.015 $\Delta F_{50}$ with degredation rate set to 0.0. Then fault degredation rate was increased to create a +0.005 $\Delta F_{50}$, this way the combination of inputs resulted in an overall delta of only -0.01.
 
 
 \begingroup
@@ -552,7 +597,7 @@ The first experiment was performed to compare the impact of raising the number o
 
 \subsection{Experiment 2. Optimizer Comparison by Varying Node Quantity }
 
-The results from Experiment 1 were used to downselect the optimization algorithms to RND and ECA only based on their comparable good performance in Experiment 1 with all features enabled. This second experiment varied the number of nodes from one to five while keeping the number of dimensions fixed at four and compare the performance for all features on and all features off. The full-factorial experiment design is captured in Table \ref{tbl:exp2-doe} for a total of twenty treatments. Using the standard replicate and scenario setup resulted in sixty-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-2}.
+The results from Experiment 1 were used to downselect the optimization algorithms to RND and ECA only based on their comparable good performance in Experiment 1 with all features enabled. This second experiment varied the number of nodes from one to five while keeping the number of dimensions fixed at four and compare the performance for all features on and all features off. Four dimensions were selected so that scenarios could be generated with multiple two composition functions of coupled pairs with constraints, thereby allowing all features to participate in impacting performance, while not being overly burdensome. The full-factorial experiment design is captured in Table \ref{tbl:exp2-doe} for a total of twenty treatments. Using the standard replicate and scenario setup resulted in sixty-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-2}.
 
 
 %--------------------------------------------------------------------------------------------
@@ -576,7 +621,7 @@ The results from Experiment 1 were used to downselect the optimization algorithm
 
 \subsection{Experiment 3. Optimizer Comparison Across Features }
 
-The results from Experiment 1 and 2 were used to select four nodes with four dimensions as the network configuration for Experiment 3. This provided a challenging test case for illustrating the effects of individual features. The experiment was perform in two phases. The first phase performed the standard set of three million iterations (ten replicates, thirty scenarios, with ten-thousand iterations each) while enabling features in isolation to compare thier individual impact against a baseline with no features enabled. The second phase performed the standard three million iterations while enabling features in series to compare their cumulative impact against a baseline with no features enabled. Both phases were performed using RND and ECA optimization for comparison. The full-factorial design is provided in Table \ref{tbl:exp3-doe} resulting in three-hundred-and-twelve-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-3}.
+The results from Experiment 1 and 2 were used to select four nodes with four dimensions as the network configuration for Experiment 3. This provided a challenging test case for illustrating the effects of individual features. The experiment was perform in two phases. The first phase performed the standard set of three million iterations (ten replicates, thirty scenarios, with ten-thousand iterations each) while enabling features in isolation to compare thier individual impact against a baseline with no features enabled. The second phase performed the standard three million iterations while enabling features in series to compare their cumulative impact against a baseline with no features enabled. Both phases were performed using RND and ECA optimization for comparison. The full-factorial design is provided in Table \ref{tbl:exp3-doe}, resulting in three-hundred-and-twelve-million runs. Results from this experiment are illustrated and described in Section \ref{sec:results-3}.
 
 
 
@@ -604,19 +649,17 @@ The results from Experiment 1 and 2 were used to select four nodes with four dim
 
 \section{Experiment Results}
 
-introduction sentence
-
+The following sections describe and illustrate performance comparisons across the experiment designs.
 
 \subsection{Experiment 1. Optimizer Comparison by Varying Dimension Quantity }
 \label{sec:results-1}
 
-description of results
+Table \ref{tbl:exp1} provides $F_{50}$ and $F_{90}$ scores for RND, ECA, PSO, and SA optimizers for Experiment 1. Scores show consistent degradation in performance as the number of dimensions is increased from one to twenty. CDF curves are provided to illustrate the full performance distributions across the parametric dimension sweep. Each curve shows the distribution of fitness scores for the best known inputs across three-million iterations. Better optimization performance is indicated by curves being more to the right with 1.0 fitness being optimal.
 
-important findings
+CDF Figures \ref{fig:test_exp_1_compare_rnd}, \ref{fig:test_exp_1_compare_eca}, \ref{fig:test_exp_1_compare_pso}, and \ref{fig:test_exp_1_compare_sa} show the performance sensitivity to dimension for RND, ECA, PSO, and SA respectively will all features off. ECA, PSO, and SA dominate RND performance with all features off. ECA and PSO are nearly equivalent with PSO outperforming at the higher dimensions. PSO and SA are equivalent for one dimension, however SA dominates all others for higher dimensions tested.
 
-\colorbox{yellow}{remove.}\lipsum[1]
+CDF Figures \ref{fig:test_exp_1b_compare_rnd}, \ref{fig:test_exp_1b_compare_eca}, \ref{fig:test_exp_1b_compare_pso}, and \ref{fig:test_exp_1b_compare_sa} show the performance sensitivity to dimension for RND, ECA, PSO, and SA respectively will all features on. These plots illustrate the drastic drop in performance by including all features. Contrary to the first set with all features off, PSO and SA perform markedly worse than RND and ECA with all features on. Interestingly, while ECA dominates PSO and SA, it only performs marginally better than RND for each dimension.
 
-table of results
 
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
@@ -626,9 +669,9 @@ table of results
 \begin{table}[H]
 	\centering
 	\caption{Experiment 1 Fitness Results for Adding Dimensions Across Four Optimizers}
-	\label{tbl:exp1}	
+	\label{tbl:exp1}
 	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-	\begin{tabular}{| C{0.12\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | C{0.08\linewidth} | }
+	\begin{tabular}{| C{0.12\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | C{0.077\linewidth} | }
 	\hline
 	& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} & \multicolumn{2}{c|}{PSO} & \multicolumn{2}{c|}{SA} \\ \hline
     \textbf{Dimensions} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} & \textbf{$F_{50}$} & \textbf{$F_{90}$} \\ \hline
@@ -651,20 +694,19 @@ table of results
 \end{table}
 
 
-\colorbox{yellow}{remove.}\lipsum[1]
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_rnd.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1_compare_rnd.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the RND optimizer and all features off.}
 	\label{fig:test_exp_1_compare_rnd}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_eca.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1_compare_eca.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the ECA optimizer and all features off.}
 	\label{fig:test_exp_1_compare_eca}
     \end{minipage}
 \end{figure}
@@ -672,16 +714,16 @@ table of results
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_pso.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1_compare_pso.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the PSO optimizer and all features off.}
 	\label{fig:test_exp_1_compare_pso}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1_compare_sa.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1_compare_sa.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the SA optimizer and all features off.}
 	\label{fig:test_exp_1_compare_sa}
     \end{minipage}
 \end{figure}
@@ -689,16 +731,16 @@ table of results
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_rnd.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1b_compare_rnd.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the RND optimizer and all features on.}
 	\label{fig:test_exp_1b_compare_rnd}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_eca.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1b_compare_eca.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the ECA optimizer and all features on.}
 	\label{fig:test_exp_1b_compare_eca}
     \end{minipage}
 \end{figure}
@@ -707,31 +749,30 @@ table of results
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_pso.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1b_compare_pso.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the PSO optimizer and all features on.}
 	\label{fig:test_exp_1b_compare_pso}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_1b_compare_sa.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_1b_compare_sa.png}
+	\caption{Experiment 1 CDF curves of fitness for best inputs using the SA optimizer and all features on.}
 	\label{fig:test_exp_1b_compare_sa}
     \end{minipage}
 \end{figure}
 
 
 \subsection{Experiment 2. Optimizer Comparison by Varying Node Quantity }
-\ref{sec:results-2}
+\label{sec:results-2}
 
-description of results
+Due to the strong performance of ECA in Experiment 1, it was chosen for comparing against RND for Experiment 2. Table \ref{tbl:exp2} provides $F_{50}$ and $F_{90}$ scores for RND and ECA optimizers while parametrically sweeping the number of nodes. CDF curves illustrate the distribution of fitness scores for the best known inputs across three-million iterations using the same method as Experiment 1.
 
-important findings
+CDF Figures \ref{fig:test_exp_2_compare_4dim_rnd}, \ref{fig:test_exp_2_compare_4dim_eca} show the performance sensitivity to node quantity for RND and ECA respectively will all features off. ECA shows marginally better performance than RND for a single node, however the improvement is much greater when more nodes are included in the network.
 
-\colorbox{yellow}{remove.}\lipsum[1]
+CDF Figures \ref{fig:test_exp_2b_compare_4dim_rnd}, \ref{fig:test_exp_2b_compare_4dim_eca} show the performance sensitivity to node quantity for RND and ECA respectively will all features on. Interestingly, ECA only shows marginally better performance than RND across all node combinations. Both RND and ECA have an $F_{90}$ score just above 0.0 at 0.033 and 0.023 respectively for four nodes. Both optimizers result in a 0.0 $F_{90}$ score for five nodes with four dimensions.
 
-table of results
 
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
@@ -767,22 +808,19 @@ table of results
 \end{table}
 
 
-\colorbox{yellow}{remove.}\lipsum[1]
-
-
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_2_compare_4dim_rnd.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_2_compare_4dim_rnd.png}
+	\caption{Experiment 2 CDF curves of fitness for best inputs using the RND optimizer and all features off.}
 	\label{fig:test_exp_2_compare_4dim_rnd}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_2_compare_4dim_eca.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_2_compare_4dim_eca.png}
+	\caption{Experiment 2 CDF curves of fitness for best inputs using the ECA optimizer and all features off.}
 	\label{fig:test_exp_2_compare_4dim_eca}
     \end{minipage}
 \end{figure}
@@ -791,16 +829,16 @@ table of results
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_2b_compare_4dim_rnd.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_2b_compare_4dim_rnd.png}
+	\caption{Experiment 2 CDF curves of fitness for best inputs using the RND optimizer and all features on.}
 	\label{fig:test_exp_2b_compare_4dim_rnd}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_2b_compare_4dim_eca.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_2b_compare_4dim_eca.png}
+	\caption{Experiment 2 CDF curves of fitness for best inputs using the ECA optimizer and all features on.}
 	\label{fig:test_exp_2b_compare_4dim_eca}
     \end{minipage}
 \end{figure}
@@ -809,34 +847,36 @@ table of results
 \subsection{Experiment 3. Optimizer Comparison Across Features }
 \label{sec:results-3}
 
-description of results
+Experiment 3 builds upon the results from Experiments 1 and 2 to compare the performance of the RND and ECA optimizers while enabling features individually and in series. This experiment uses four nodes with four dimensions each to provide a challenging scenario without overburdening performance while supporting evaluation of the relative and compound impact of features. When all features are enabled the $F_{90}$ score for RND and ECA are just above 0.0. As with the previous experiments, each treatment includes the standard ten replicates of thirty scenarios with ten-thousand iterations each for a total of three-million iterations per treatment. Likewise, each of the CDF curves below represent the fitness score for the best known inputs across the three-million iterations. Due to simulation runtime and the number of features, pairwise sensitivity testing was not performed to quantify the impact of feature interactions.
 
-important findings
+\subsubsection{Impact of Individual Features}
 
-\colorbox{yellow}{remove.}\lipsum[1]
+Results for enabling individual features are provided in Table \ref{tbl:exp3-parallel} with Figures \ref{fig:test_exp_3_parallel_rnd} and \ref{fig:test_exp_3_parallel_eca} showing results for RND and ECA respectively. The first line in Table \ref{tbl:exp3-parallel} represents "baseline" performance, or performance with no features enabled other than composition functions with spline basic equations and network mapping logic. Each simulation feature is then enabled in isolation with the resulting $\Delta F_{50}$ and $\Delta F_{90}$ scores being the change in performance from baseline, thus representing the impact for enabling that feature. Individual delta scores are also provided in bar chart form in Figures \ref{fig:test_exp_3_parallel_f50} and \ref{fig:test_exp_3_parallel_f90} for $\Delta F_{50}$ and $\Delta F_{90}$ respectively.
+
+The first important response is the positive score shift due to enabling the iso optimal surface feature. This result is expected as it creates many large non-convex continuous and disconnected regions with an optimal score of 1.0 as opposed to considerably fewer small optimal islands. Enabling input noise adds uncertainty to the decision variables resulting in uncertainty propagation through the simulation calculations resulting in approximately -0.01 performance drop. The next series of features provide negligible performance difference and are primarly used to create landscape variation, non-separability, and add uncertainty to the output: model noise, input shift, input map, flattening, inversion, and skewing.
+
+Enabling the feasibility constraint feature results in a large drop in performance of around -0.11. While constraints do not make the iso optimal surface infeasible, they do drastically reduce the surface of feasible non-optimal solutions resulting in NaN being returned by the simulation if any input of the inputs result in an infeasible solution. Next, the composition function scaling and node total scaling inputs create a large drop in performance between -0.09 and -0.21. These enable the input decision variables that evaluate the scaling splines, effectively increasing the dimensionality of the problem space. Enabling faults shows meaningful but not extreme drop in performance of around -0.03 due to now including model fitness degradation and simulation executive failures.
+
+Enabling dynamic features show no change in performance as expected due to sub-features not being enabled. Dynamic splines, input mapping, and input shifting each result in approximately -0.025 performance drop as expected from configuration parameter tuning. Dynamic network events results in larger movements for $F_{50}$ than $F_{90}$ by a magnitude of approximately three for a drop in $F_{50}$ of around -0.05 to -0.10.
+
+Next, enabling adversarial features shows no change in performance as expected due to sub-features not being enabled, following the same pattern as for dynamic features. Enabling elevated adversarial noise to model outputs shows negligible overall delta as expected due to the lower average performance for four nodes with four dimensions as well as the noise being Guassian. Next, the adversarial offset, failure, and incorrect features result in higher, but not extreme performance degradataion of around -0.04 as expected from parameter tuning. However, the impact is noticeably larger for ECA than for RND. Lastly, the bad path failure and random fitness provide negligible overall delta in isolation.
+
 
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
 
-\begingroup
 
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\setlength\LTcapwidth{\linewidth}
-
-\begin{longtable}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
-
-\caption{Experiment 3 Fitness Sensitivity for Individual Features}\\
-
-\hline
- & \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+\begin{table}[H]
+	\centering
+	\caption{Experiment 3 Fitness Sensitivity for Individual Features}
+	\label{tbl:exp3-parallel}
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
+	\hline
+	 & \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
 \textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
-\endfirsthead
 
-\hline
-& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
-\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
-\endhead
 
 baseline & 0.723 & 0.797 & 0.799 & 0.871 \\ \hline
 iso\_optimal & +0.052 & +0.047 & +0.051 & +0.040 \\ \hline
@@ -863,38 +903,74 @@ adversarial\_offset & -0.039 & -0.023 & -0.064 & -0.041 \\ \hline
 adversarial\_failure & -0.046 & -0.032 & -0.061 & -0.037 \\ \hline
 adversarial\_incorrect & -0.024 & -0.012 & -0.042 & -0.036 \\ \hline
 fail\_on\_bad\_path & -0.003 & -0.002 & +0.007 & +0.002 \\ \hline
-random\_fitness & -0.001 & -0.001 & -0.014 & -0.013
+random\_fitness & -0.001 & -0.001 & -0.014 & -0.013 \\ \hline
 
-\label{tbl:exp3-parallel} \\ \hline
 
-\end{longtable}
+	\end{tabular}
+\end{table}
 
-\endgroup
 
-\colorbox{yellow}{remove.}\lipsum[1]
+
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_parallel_rnd.png}
+	\caption{Experiment 3 CDF curves of fitness for best inputs using the RND optimizer while enabling individual features.}
+	\label{fig:test_exp_3_parallel_rnd}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_parallel_eca.png}
+	\caption{Experiment 3 CDF curves of fitness for best inputs using the ECA optimizer while enabling individual features.}
+	\label{fig:test_exp_3_parallel_eca}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_parallel_f50.png}
+	\caption{Experiment 3 scores for $\Delta F_{50}$ for RND and ECA optimizers when enabling individual features.}
+	\label{fig:test_exp_3_parallel_f50}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_parallel_f90.png}
+	\caption{Experiment 3 scores for $\Delta F_{90}$ for RND and ECA optimizers when enabling individual features.}
+	\label{fig:test_exp_3_parallel_f90}
+    \end{minipage}
+\end{figure}
+
 
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
 %--------------------------------------------------------------------------------------------
 
-\begingroup
+\subsubsection{Impact of Stacking Features}
 
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\setlength\LTcapwidth{\linewidth}
+Results for enabling features cumulatively in series are provided in Table \ref{tbl:exp3-series} with Figures \ref{fig:test_exp_3_series_rnd} and \ref{fig:test_exp_3_series_eca} showing CDF curve results for RND and ECA as well as Figures \ref{fig:test_exp_3_series_f50} and \ref{fig:test_exp_3_series_f90} providing bar charts for $\Delta F_{50}$ and $\Delta F_{90}$ respectively.
 
-\begin{longtable}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
+As with individual features, the first line in Table \ref{tbl:exp3-series} is the baseline performance with all  additional features off. The baseline and iso\_optimal lines match the results from the previous section as expected for a repeatable simulation. The performance gain from enabling the iso optimal surface is slowly eroded when adding basic landscape and noise features from input noise through coupled pair skewing. While ECA starts with higher fitness than RND, the erosion in performance with these basic features is higher than for RND.
 
-\caption{Experiment 3 Fitness Sensitivity Results for Stacking Features}\\
+The first three large drops in performance are clearly visible in Figures \ref{fig:test_exp_3_series_f50} and \ref{fig:test_exp_3_series_f90} when enabling constraints, composition function scale input, and node total fitness scale input. The performance degradation while adding features is comparable for RND and ECA between adding constraints up through enabling dynamic input shifting. The dynamic network remapping has a more pronounced effect on ECA than for RND. Adversarial features generally have more of an impact on $F_{90}$ score than for $F_{50}$ as expected due to the nature of the adversarial effect to be scaled to be stronger when near more optimal performance. Lastly, the feature to enable simulation failure on invalid paths, fail\_on\_bad\_path, results in a very strong performance drop in $F_{90}$ with less so in $F_{50}$.
 
-\hline
-& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
+In general, the performance for ECA starts and stays higher than for RND as features are added up until dynamic network remapping is enabled. At which point the overall performance for ECA drops and stays nearly equivalent to RND. Ultimately for the four node four dimension scenario both optimizer's $F_{90}$ performance with all features enabled sits just above zero at 0.033 for RND and 0.023 for ECA.
+
+
+
+\begin{table}[H]
+	\centering
+	\caption{Experiment 3 Fitness Sensitivity Results for Stacking Features}
+	\label{tbl:exp3-series}
+	\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+	\begin{tabular}{| p{0.2\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | C{0.12\linewidth} | }
+	\hline
+	 & \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
 \textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
-\endfirsthead
 
-\hline
-& \multicolumn{2}{c|}{RND} & \multicolumn{2}{c|}{ECA} \\ \hline
-\textbf{Features} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} & \textbf{$\Delta F_{50}$} & \textbf{$\Delta F_{90}$} \\ \hline
-\endhead
 
 baseline & 0.723 & 0.797 & 0.799 & 0.871 \\ \hline
 iso\_optimal & +0.052 & +0.047 & +0.051 & +0.040 \\ \hline
@@ -921,63 +997,62 @@ adversarial\_offset & -0.685 & -0.602 & -0.771 & -0.666 \\ \hline
 adversarial\_failure & -0.685 & -0.602 & -0.771 & -0.665 \\ \hline
 adversarial\_incorrect & -0.686 & -0.592 & -0.763 & -0.671 \\ \hline
 fail\_on\_bad\_path & -0.724 & -0.765 & -0.800 & -0.849 \\ \hline
-random\_fitness & -0.724 & -0.765 & -0.800 & -0.849
+random\_fitness & -0.724 & -0.765 & -0.800 & -0.849 \\ \hline
 
 
-\label{tbl:exp3-series} \\ \hline
+	\end{tabular}
+\end{table}
 
-\end{longtable}
-
-\endgroup
-
-\colorbox{yellow}{remove.}\lipsum[1]
-
-%--------------------------------------------------------------------------------------------
-%--------------------------------------------------------------------------------------------
-%--------------------------------------------------------------------------------------------
-
-\begin{figure}
-	\centering
-    \begin{minipage}[t]{0.46\textwidth}
-        \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_3_parallel_rnd.png}
-	\caption{asdf.}
-	\label{fig:test_exp_3_parallel_rnd}
-    \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
-        \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_3_parallel_eca.png}
-	\caption{asdf.}
-	\label{fig:test_exp_3_parallel_eca}
-    \end{minipage}
-\end{figure}
 
 
 
 \begin{figure}
 	\centering
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_3_series_rnd.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_3_series_rnd.png}
+	\caption{Experiment 3 CDF curves of fitness for best inputs using the RND optimizer while progressively including features.}
 	\label{fig:test_exp_3_series_rnd}
     \end{minipage}\hfill
-    \begin{minipage}[t]{0.46\textwidth}
+    \begin{minipage}[t]{0.47\textwidth}
         \centering
-        \includegraphics[width=0.96\textwidth]{test_exp_3_series_eca.png}
-	\caption{asdf.}
+        \includegraphics[width=0.97\textwidth]{test_exp_3_series_eca.png}
+	\caption{Experiment 3 CDF curves of fitness for best inputs using the ECA optimizer while progressively including features.}
 	\label{fig:test_exp_3_series_eca}
     \end{minipage}
 \end{figure}
 
 
+\begin{figure}
+	\centering
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_series_f50.png}
+	\caption{Experiment 3 scores for $\Delta F_{50}$ for RND and ECA optimizers with cumulative features.}
+	\label{fig:test_exp_3_series_f50}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=0.97\textwidth]{test_exp_3_series_f90.png}
+	\caption{Experiment 3 scores for $\Delta F_{90}$ for RND and ECA optimizers with cumulative features.}
+	\label{fig:test_exp_3_series_f90}
+    \end{minipage}
+\end{figure}
+
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------
+
+
 
 \section{Conclusions}
 
-\colorbox{yellow}{tbd.}
+Well established, heavily cited, high performing metaheuristic algorithms either perform worse or only marginally better than random search optimization when all simulation features are enabled.
 
-\colorbox{yellow}{remove.}\lipsum
 
+\section{Acknowledgements}
+
+The author would like to thank Dr. Ghaith Rabadi and Dr. Bulent Soykan for providing helpful feedback and recommendations during the project ideation, literature review, and experiments.
 
 \bibliography{mybib,cec}
 \bibliographystyle{ieeetr}
