@@ -29,7 +29,7 @@ random\_fitness\_rate & 0.02 & Probability of returning a random result & To ach
 fault\_degredation\_rate & 0.37 & Probability of degradation instead of fault & Achieve $\Delta F_{50}$ of -0.010 during tuning \\ \hline
 fault\_max\_thresh & 0.77 & Upper limit to fault threshold & Achieve $\Delta F_{50}$ of -0.015 during tuning \\ \hline
 constraint\_input\_margin & 0.05 & Distance input must enter constraint to return infeasible & Large enough to prevent no feasible result \\ \hline
-constraint\_optimal\_margin & 0.05 & Distance away from optimal before applying constraint & Large enough to prevent no feasible result \\ \hline
+constraint\_optimal\_margin & 0.05 & Distance away from optimal before applying constraint & Large enough to prevent no optimal result \\ \hline
 min\_knots & 10 & Minimum knots for governing and model splines & Support landscape variation \\ \hline
 max\_knots & 20 & Maximum knots for governing and model splines & Support landscape variation \\ \hline
 min\_scale\_knots & 5 & Minimum knots for scaling splines & Achieve non-linear scaling \\ \hline
@@ -46,7 +46,7 @@ adversarial\_feedback & 0.8 & Temporal feedback in fitness score for adversarial
 min\_adversarial\_knots & 5 & Minimum knots for adversarial feature spline & Support non-linear spline landscape \\ \hline
 max\_adversarial\_knots & 10 & Maximum knots for adversarial feature spline & Support non-linear spline landscape \\ \hline
 dyn\_model\_inp\_vel\_mag & 0.0077 & Maximum input offset velocity magnitude per 1000 sim iterations & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
-dyn\_model\_gen\_vel\_mag & 0.0077 & Maximum governing offset velocity magnitude per 1000 sim iterations & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
+dyn\_model\_gov\_vel\_mag & 0.0077 & Maximum governing offset velocity magnitude per 1000 sim iterations & Achieve $\Delta F_{50}$ of -0.02 during tuning \\ \hline
 dyn\_input\_map\_freq\_min & 1050 & Minimum iterations before input re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
 dyn\_input\_map\_freq\_max & 1600 & Maximum iterations before input re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline
 dyn\_network\_map\_freq\_min & 1050 & Minimum iterations before network re-mapping event & Achieve 6 to 9 events per 10k iterations \\ \hline

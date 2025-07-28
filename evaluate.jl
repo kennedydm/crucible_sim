@@ -19,6 +19,7 @@ function sim_eval(sim::SimStruct, x_in::Array{Float64}, path::Array{Int}, fideli
     adv_failure_factor = 1.0
     if sim.config.enable_adversarial
         sim.runtime_adv_factor = sim.adversarial_fitness * (1.0 + (spline_eval(sim.adversarial_spline, sim.adversarial_fitness) - 0.5) * 0.5)
+        sim.num_function_evals += 1
 
         if sim.config.enable_adversarial_failure
             adv_failure_factor = (1 + sim.config.adversarial_failure_factor * sim.runtime_adv_factor)
